@@ -40,4 +40,11 @@ locals {
     issuerRef     = "letsencrypt"
     email = var.letsencryptEmail
   }
+
+  ingressNginxSettings = {
+    name          = "ingress-nginx"
+    namespace     = "ingress-nginx"
+    chart_version = "4.14.0"
+    repository    = "https://kubernetes.github.io/ingress-nginx"
+  }
 }

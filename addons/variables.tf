@@ -1,8 +1,14 @@
 
-variable "kubeconfig_path" { type = string }
-variable "hcloud_token"    { type = string }
-variable "email_le"        { type = string } # Let's Encrypt email
+variable "kubeconfig_path" { 
+  type = string 
+  description = "Path to kubeconfig file"
+}
 
+variable "hcloud_token"    { 
+  type = string 
+  description = "Hetzner Cloud API token"
+  sensitive = true
+}
 
 variable "tranzrCloudflareApiTokenKey" {
   description = "Tranzr Cloudflare API token key"

@@ -60,6 +60,7 @@ resource "kubernetes_storage_class_v1" "hcloud_volumes" {
   parameters = { 
     type = "network-ssd" 
     }
+  depends_on = [helm_release.hcloud_csi]
 }
 
 
@@ -129,7 +130,7 @@ resource "kubernetes_secret_v1" "tranzr_cloudflare_token_secret" {
   }
 
   data = {
-    cloudflare-token: "${var.tranzrCloudflareApiTokenKey}"
+    cloudflare-token = var.tranzrCloudflareApiTokenKey
   }
 
   type = "Opaque"
@@ -209,12 +210,12 @@ resource "kubernetes_manifest" "tranzr-letsencrypt-production" {
 
 resource "kubernetes_secret_v1" "azure_secret_sp_secret" {
   metadata {
-    name = "azure-secret-sp-secret"
+    name      = "azure-secret-sp-secret"
   }
 
   data = {
-    clientId = "${var.azureServicePrincipalClientId}"
-    clientSecret = "${var.azureServicePrincipalClientSecret}"
+    clientId     = var.azureServicePrincipalClientId
+    clientSecret = var.azureServicePrincipalClientSecret
   }
 
   type = "Opaque"

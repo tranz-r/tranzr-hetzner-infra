@@ -69,6 +69,7 @@ data "template_file" "master_cloudinit" {
   vars = {
     k3s_token   = random_password.k3s_token.result
     k3s_channel = var.k3s_channel
+    node_name   = local.master_hostname
   }
 }
 
@@ -85,15 +86,9 @@ resource "hcloud_server" "master" {
   }
 
   user_data = data.template_file.master_cloudinit.rendered
-}
 
-data "template_file" "worker_cloudinit" {
-  template = file("${path.module}/cloudinit/worker.yaml.tmpl")
-  vars = {
-    k3s_token   = random_password.k3s_token.result
-    master_ip   = hcloud_server.master.private_net[0].ip
-    k3s_channel = var.k3s_channel
-    labels      = join(",", var.worker_labels)
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -106,10 +101,20 @@ resource "hcloud_server" "worker" {
   ssh_keys     = [hcloud_ssh_key.me.id]
   firewall_ids = [hcloud_firewall.k8s.id]
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   network {
     network_id = hcloud_network.net.id
   }
 
-  user_data  = data.template_file.worker_cloudinit.rendered
+  user_data = templatefile("${path.module}/cloudinit/worker.yaml.tmpl", {
+    k3s_token   = random_password.k3s_token.result
+    master_ip   = hcloud_server.master.private_net[0].ip
+    k3s_channel = var.k3s_channel
+    labels      = join(",", var.worker_labels)
+    node_name   = local.worker_hostnames[count.index]
+  })
   depends_on = [hcloud_server.master]
 }
