@@ -1,0 +1,49 @@
+
+name: Deploy Kubernetes Addons
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Provision Hetzner Cluster Infra"]
+    types:
+      - completed
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TF_IN_AUTOMATION: true
+      TF_INPUT: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download kubeconfig artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kubeconfig
+          path: ./addons
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform Init (Azure remote state)
+        working-directory: addons
+        env:
+          ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+        run: |
+          terraform init             -backend-config="resource_group_name=${{ vars.AZURE_RG_NAME }}"             -backend-config="storage_account_name=${{ vars.AZURE_STORAGE_ACCOUNT }}"             -backend-config="container_name=${{ vars.AZURE_STORAGE_CONTAINER }}"             -backend-config="key=${{ vars.AZURE_STATE_KEY_ADDONS }}"
+
+      - name: Terraform Apply
+        working-directory: addons
+        env:
+          TF_VAR_kubeconfig_path: "./addons/kubeconfig"
+          TF_VAR_hcloud_token:    ${{ secrets.HETZNER_API_TOKEN }}
+          TF_VAR_email_le:        ${{ secrets.LETSENCRYPT_EMAIL }}
+        run: terraform apply -auto-approve

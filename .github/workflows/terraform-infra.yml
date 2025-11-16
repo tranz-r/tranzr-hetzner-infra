@@ -1,0 +1,79 @@
+
+name: Provision Hetzner Cluster Infra
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "infra/**"
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TF_IN_AUTOMATION: true
+      TF_INPUT: false
+      TF_VERSION: 1.13.5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Set Terraform Environment Variables
+        run: |
+            echo "ARM_CLIENT_ID=$(jq -r .clientId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+            echo "ARM_CLIENT_SECRET=$(jq -r .clientSecret <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+            echo "ARM_TENANT_ID=$(jq -r .tenantId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+            echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p /root/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /root/.ssh/id_ed25519
+          chmod 600 /root/.ssh/id_ed25519
+
+      - name: Terraform Init (Azure remote state)
+        working-directory: infra
+        run: terraform init -upgrade
+
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: infra
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_ssh_private_key_path: "/root/.ssh/id_ed25519"
+        run: terraform plan
+
+      - name: Terraform Apply
+        working-directory: infra
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_ssh_private_key_path: "/root/.ssh/id_ed25519"
+        run: terraform apply -auto-approve
+
+      - name: Fetch kubeconfig
+        working-directory: infra
+        run: |
+          MASTER_IP=$(terraform output -raw master_public_ip)
+          # fetch as root (Hetzner Ubuntu images default to root)
+          scp -o StrictHostKeyChecking=no -i /root/.ssh/id_ed25519 root@$MASTER_IP:/etc/rancher/k3s/k3s.yaml ./kubeconfig
+          sed -i "s/127.0.0.1/$MASTER_IP/" kubeconfig
+
+      - name: Upload kubeconfig artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubeconfig
+          path: infra/kubeconfig

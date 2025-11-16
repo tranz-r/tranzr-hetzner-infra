@@ -1,0 +1,8 @@
+
+controller:
+  service:
+    type: LoadBalancer
+  config:
+    proxy-read-timeout: "3600"
+    proxy-send-timeout: "3600"
+    proxy-buffering: "off"

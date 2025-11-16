@@ -1,0 +1,7 @@
+
+#cloud-config
+package_update: true
+packages: [curl]
+runcmd:
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL='${k3s_channel}' K3S_TOKEN='${k3s_token}' sh -s - agent       --server https://${master_ip}:6443       --node-label ${labels}
+  - systemctl enable k3s-agent && systemctl restart k3s-agent
