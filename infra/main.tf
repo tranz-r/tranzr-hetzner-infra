@@ -60,7 +60,7 @@ resource "random_password" "k3s_token" {
 }
 
 locals {
-  master_hostname  = "${var.cluster_name}-master"
+  master_hostname  = "${var.cluster_name}-control-plane"
   worker_hostnames = [for i in range(var.workers) : "${var.cluster_name}-worker-${i + 1}"]
 }
 

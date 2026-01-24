@@ -43,13 +43,13 @@ variable "workers"      {
 
 variable "cluster_name" { 
   type = string  
-  default = "tranzr-moves" 
+  default = "tranzr" 
   description = "Cluster name"
 }
 
 variable "master_type"  { 
   type = string  
-  default = "cpx22" 
+  default = "cx33" 
   description = "Hetzner Cloud master type"
 }
 
