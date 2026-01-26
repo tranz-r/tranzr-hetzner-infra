@@ -83,6 +83,7 @@ resource "hcloud_server" "master" {
 
   network {
     network_id = hcloud_network.net.id
+    alias_ips = []
   }
 
   public_net {
@@ -112,6 +113,7 @@ resource "hcloud_server" "worker" {
 
   network {
     network_id = hcloud_network.net.id
+    alias_ips = []
   }
 
   public_net {
@@ -121,7 +123,7 @@ resource "hcloud_server" "worker" {
 
   user_data = templatefile("${path.module}/cloudinit/worker.yaml.tmpl", {
     k3s_token   = random_password.k3s_token.result
-    master_ip   = hcloud_server.master.network.ip
+    master_ip   = [for n in hcloud_server.master.network : n.ip if n.network_id == hcloud_network.net.id][0]
     k3s_channel = var.k3s_channel
     labels      = join(",", var.worker_labels)
     node_name   = local.worker_hostnames[count.index]
