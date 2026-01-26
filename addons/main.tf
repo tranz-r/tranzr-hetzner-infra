@@ -145,7 +145,6 @@ resource "kubernetes_secret_v1" "tranzr_cloudflare_token_secret" {
 }
 
 resource "kubernetes_manifest" "tranzr-letsencrypt-staging" {
-
   manifest = {
     apiVersion = local.clusterIssuerSettings.apiVersion
     kind       = local.clusterIssuerSettings.kind
@@ -181,7 +180,6 @@ resource "kubernetes_manifest" "tranzr-letsencrypt-staging" {
 }
 
 resource "kubernetes_manifest" "tranzr-letsencrypt-production" {
-
   manifest = {
     apiVersion = local.clusterIssuerSettings.apiVersion
     kind       = local.clusterIssuerSettings.kind
@@ -275,7 +273,6 @@ resource "null_resource" "wait_for_external_secrets_operator_crds" {
 }
 
 resource "kubernetes_manifest" "azure_kv_cluster_store" {
-
   manifest = {
     apiVersion = "external-secrets.io/v1beta1"
     kind       = "ClusterSecretStore"
@@ -341,7 +338,15 @@ resource "null_resource" "wait_for_gateway_api_crds" {
   depends_on = [terraform_data.gateway_api_crds]
 
   provisioner "local-exec" {
+    environment = {
+      KUBECONFIG = var.kubeconfig_path
+    }
     command = <<EOT
+      echo "Using kubeconfig: ${var.kubeconfig_path}"
+      if [ ! -f "${var.kubeconfig_path}" ]; then
+        echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
+        exit 1
+      fi
       echo "Waiting for Gateway API CRDs to become available..."
       for i in {1..30}; do
         if kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; then
@@ -360,7 +365,7 @@ resource "null_resource" "wait_for_gateway_api_crds" {
 resource "helm_release" "nginx_gateway_fabric" {
   name       = local.nginxGatewayFabricSettings.name
   repository = local.nginxGatewayFabricSettings.repository
-  chart      = local.nginxGatewayFabricSettings.name
+  chart      = local.nginxGatewayFabricSettings.chart
   version    = local.nginxGatewayFabricSettings.chart_version
 
   namespace        = local.nginxGatewayFabricSettings.namespace

@@ -49,9 +49,10 @@ locals {
   }
 
   nginxGatewayFabricSettings = {
-    name          = "nginx-gateway-fabric"
+    name          = "ngf"
     namespace     = "nginx-gateway"
     chart_version = "2.3.0"
-    repository    = "oci://ghcr.io/nginx/charts/nginx-gateway-fabric"
+    repository    = "oci://ghcr.io/nginx/charts"
+    chart         = "nginx-gateway-fabric"
   }
 }
