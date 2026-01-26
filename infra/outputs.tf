@@ -4,7 +4,7 @@ output "master_public_ip" {
 }
 
 output "master_private_ip" {
-  value = [for n in hcloud_server.master.network : n.ip if n.network_id == hcloud_network.net.id][0]
+  value = [for n in hcloud_server.master.network : n.ip][0]
 }
 
 output "k3s_token" {
