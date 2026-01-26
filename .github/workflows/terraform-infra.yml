@@ -26,18 +26,18 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - name: Prepare SSH key
+        run: |
+          mkdir -p $HOME/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > $HOME/.ssh/id_ed25519
+          chmod 600 $HOME/.ssh/id_ed25519
+
       - name: Set Terraform Environment Variables
         run: |
           echo "ARM_CLIENT_ID=$(jq -r .clientId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
           echo "ARM_CLIENT_SECRET=$(jq -r .clientSecret <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
           echo "ARM_TENANT_ID=$(jq -r .tenantId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
-
-      - name: Prepare SSH key
-        run: |
-          mkdir -p /root/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /root/.ssh/id_ed25519
-          chmod 600 /root/.ssh/id_ed25519
 
       - name: Terraform Init (Azure remote state)
         working-directory: infra
@@ -52,7 +52,7 @@ jobs:
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_ssh_private_key_path: "/root/.ssh/id_ed25519"
+          TF_VAR_ssh_private_key_path: "$HOME/.ssh/id_ed25519"
         run: terraform plan
 
       - name: Terraform Apply
@@ -60,7 +60,7 @@ jobs:
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_ssh_private_key_path: "/root/.ssh/id_ed25519"
+          TF_VAR_ssh_private_key_path: "$HOME/.ssh/id_ed25519"
         run: terraform apply -auto-approve
 
       - name: Fetch kubeconfig
@@ -68,7 +68,7 @@ jobs:
         run: |
           MASTER_IP=$(terraform output -raw master_public_ip)
           # fetch as root (Hetzner Ubuntu images default to root)
-          scp -o StrictHostKeyChecking=no -i /root/.ssh/id_ed25519 root@$MASTER_IP:/etc/rancher/k3s/k3s.yaml ./kubeconfig
+          scp -o StrictHostKeyChecking=no -i $HOME/.ssh/id_ed25519 root@$MASTER_IP:/etc/rancher/k3s/k3s.yaml ./kubeconfig
           sed -i "s/127.0.0.1/$MASTER_IP/" kubeconfig
 
       - name: Upload kubeconfig artifact
