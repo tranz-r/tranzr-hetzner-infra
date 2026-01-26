@@ -121,7 +121,7 @@ resource "hcloud_server" "worker" {
 
   user_data = templatefile("${path.module}/cloudinit/worker.yaml.tmpl", {
     k3s_token   = random_password.k3s_token.result
-    master_ip   = hcloud_server.master.private_net[0].ip
+    master_ip   = hcloud_server.master.network.ip
     k3s_channel = var.k3s_channel
     labels      = join(",", var.worker_labels)
     node_name   = local.worker_hostnames[count.index]

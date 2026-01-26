@@ -4,7 +4,7 @@ output "master_public_ip" {
 }
 
 output "master_private_ip" {
-  value = hcloud_server.master.private_net[0].ip
+  value = hcloud_server.master.network.ip
 }
 
 output "k3s_token" {
