@@ -42,6 +42,14 @@ resource "hcloud_firewall" "k8s" {
   rule {
     direction  = "in"
     protocol   = "tcp"
+    port       = "6443"
+    source_ips = ["0.0.0.0/0", "::/0"]
+    description = "Kubernetes API server - required for Terraform/kubectl access"
+  }
+
+  rule {
+    direction  = "in"
+    protocol   = "tcp"
     port       = "1-65535"
     source_ips = ["10.20.0.0/16"]
   }

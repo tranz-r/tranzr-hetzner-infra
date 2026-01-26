@@ -52,6 +52,6 @@ locals {
     name          = "nginx-gateway-fabric"
     namespace     = "nginx-gateway"
     chart_version = "2.3.0"
-    repository    = "https://nginxinc.github.io/nginx-gateway-fabric"
+    repository    = "oci://ghcr.io/nginx/charts/nginx-gateway-fabric"
   }
 }
