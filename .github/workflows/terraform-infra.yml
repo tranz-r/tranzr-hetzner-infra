@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      TF_VAR_kubeconfig_path: "./addons/kubeconfig"
+      TF_VAR_kubeconfig_path: "${{ github.workspace }}/addons/kubeconfig"
       TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
       TF_VAR_letsencryptEmail: ${{ secrets.LETSENCRYPT_EMAIL }}
       TF_VAR_tranzrCloudflareApiTokenKey: ${{ secrets.TRANZR_CLOUDFLARE_API_TOKEN_KEY }}
@@ -106,6 +106,15 @@ jobs:
         with:
           name: kubeconfig
           path: ./addons
+      
+      - name: Verify kubeconfig exists
+        run: |
+          ls -la ./addons/
+          if [ ! -f ./addons/kubeconfig ]; then
+            echo "Error: kubeconfig file not found at ./addons/kubeconfig"
+            exit 1
+          fi
+          echo "Kubeconfig found at: $(pwd)/addons/kubeconfig"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
