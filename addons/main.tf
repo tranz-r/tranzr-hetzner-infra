@@ -105,7 +105,15 @@ resource "null_resource" "wait_for_cert_manager_crds" {
   depends_on = [helm_release.cert_manager]
 
   provisioner "local-exec" {
+    environment = {
+      KUBECONFIG = var.kubeconfig_path
+    }
     command = <<EOT
+      echo "Using kubeconfig: ${var.kubeconfig_path}"
+      if [ ! -f "${var.kubeconfig_path}" ]; then
+        echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
+        exit 1
+      fi
       echo "Waiting for cert-manager CRDs to become available..."
       for i in {1..30}; do
         if kubectl get crd clusterissuers.cert-manager.io >/dev/null 2>&1; then
@@ -242,7 +250,15 @@ resource "null_resource" "wait_for_external_secrets_operator_crds" {
   depends_on = [helm_release.external_secrets_operator]
 
   provisioner "local-exec" {
+    environment = {
+      KUBECONFIG = var.kubeconfig_path
+    }
     command = <<EOT
+      echo "Using kubeconfig: ${var.kubeconfig_path}"
+      if [ ! -f "${var.kubeconfig_path}" ]; then
+        echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
+        exit 1
+      fi
       echo "Waiting for external-secrets-operator CRDs to become available..."
       for i in {1..30}; do
         if kubectl get crd clustersecretstores.external-secrets.io >/dev/null 2>&1; then
@@ -304,9 +320,17 @@ resource "helm_release" "cloudnative-pg-operator" {
 
 resource "terraform_data" "gateway_api_crds" {
   provisioner "local-exec" {
+    environment = {
+      KUBECONFIG = var.kubeconfig_path
+    }
     command = <<EOT
-kubectl apply --server-side \
-  -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+      echo "Using kubeconfig: ${var.kubeconfig_path}"
+      if [ ! -f "${var.kubeconfig_path}" ]; then
+        echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
+        exit 1
+      fi
+      kubectl apply --server-side \
+        -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
 EOT
   }
 
