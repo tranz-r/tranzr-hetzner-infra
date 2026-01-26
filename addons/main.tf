@@ -302,4 +302,48 @@ resource "helm_release" "cloudnative-pg-operator" {
   wait = true
 }
 
+resource "terraform_data" "gateway_api_crds" {
+  provisioner "local-exec" {
+    command = <<EOT
+kubectl apply --server-side \
+  -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+EOT
+  }
+
+  depends_on = [helm_release.hcloud_ccm]
+}
+
+resource "null_resource" "wait_for_gateway_api_crds" {
+  depends_on = [terraform_data.gateway_api_crds]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "Waiting for Gateway API CRDs to become available..."
+      for i in {1..30}; do
+        if kubectl get crd gateways.gateway.networking.k8s.io >/dev/null 2>&1; then
+          echo "Gateway API CRDs ready."
+          exit 0
+        fi
+        echo "CRDs not ready yet, waiting..."
+        sleep 20
+      done
+      echo "Timeout waiting for Gateway API CRDs"
+      exit 1
+    EOT
+  }
+}
+
+resource "helm_release" "nginx_gateway_fabric" {
+  name       = local.nginxGatewayFabricSettings.name
+  repository = local.nginxGatewayFabricSettings.repository
+  chart      = local.nginxGatewayFabricSettings.name
+  version    = local.nginxGatewayFabricSettings.chart_version
+
+  namespace        = local.nginxGatewayFabricSettings.namespace
+  create_namespace = true
+  # values           = [file("${path.module}/values/nginx-gateway-fabric/values.yaml")]
+  depends_on       = [null_resource.wait_for_gateway_api_crds]
+}
+
+
 

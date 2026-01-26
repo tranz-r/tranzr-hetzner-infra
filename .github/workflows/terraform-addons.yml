@@ -1,4 +1,3 @@
-
 name: Deploy Kubernetes Addons
 
 on:
@@ -18,6 +17,7 @@ jobs:
     env:
       TF_IN_AUTOMATION: true
       TF_INPUT: false
+      TF_VERSION: 1.14.3
 
     steps:
       - uses: actions/checkout@v4
@@ -31,19 +31,49 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.9.8
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Set Terraform Environment Variables
+        run: |
+          echo "ARM_CLIENT_ID=$(jq -r .clientId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$(jq -r .clientSecret <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$(jq -r .tenantId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
 
       - name: Terraform Init (Azure remote state)
         working-directory: addons
+        run: terraform init -upgrade
+
+      - name: Terraform Validate
+        working-directory: addons
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: addons
         env:
-          ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
-        run: |
-          terraform init             -backend-config="resource_group_name=${{ vars.AZURE_RG_NAME }}"             -backend-config="storage_account_name=${{ vars.AZURE_STORAGE_ACCOUNT }}"             -backend-config="container_name=${{ vars.AZURE_STORAGE_CONTAINER }}"             -backend-config="key=${{ vars.AZURE_STATE_KEY_ADDONS }}"
+          TF_VAR_kubeconfig_path: "./addons/kubeconfig"
+          TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
+          TF_VAR_letsencryptEmail: ${{ secrets.LETSENCRYPT_EMAIL }}
+          TF_VAR_tranzrCloudflareApiTokenKey: ${{ secrets.TRANZR_CLOUDFLARE_API_TOKEN_KEY }}
+          TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
+          TF_VAR_azureServicePrincipalClientId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_ID }}
+          TF_VAR_azureServicePrincipalClientSecret: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET }}
+          TF_VAR_azureServicePrincipalTenantId: ${{ vars.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
+          TF_VAR_azureSubscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azureKeyVaultUrl: ${{ vars.AZURE_KEY_VAULT_URL }}
+        run: terraform plan
 
       - name: Terraform Apply
         working-directory: addons
         env:
           TF_VAR_kubeconfig_path: "./addons/kubeconfig"
-          TF_VAR_hcloud_token:    ${{ secrets.HETZNER_API_TOKEN }}
-          TF_VAR_email_le:        ${{ secrets.LETSENCRYPT_EMAIL }}
+          TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
+          TF_VAR_letsencryptEmail: ${{ secrets.LETSENCRYPT_EMAIL }}
+          TF_VAR_tranzrCloudflareApiTokenKey: ${{ secrets.TRANZR_CLOUDFLARE_API_TOKEN_KEY }}
+          TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
+          TF_VAR_azureServicePrincipalClientId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_ID }}
+          TF_VAR_azureServicePrincipalClientSecret: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET }}
+          TF_VAR_azureServicePrincipalTenantId: ${{ vars.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
+          TF_VAR_azureSubscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azureKeyVaultUrl: ${{ vars.AZURE_KEY_VAULT_URL }}
         run: terraform apply -auto-approve

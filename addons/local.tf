@@ -9,21 +9,21 @@ locals {
   certManagerSettings = {
     name          = "cert-manager"
     namespace     = "cert-manager"
-    chart_version = "v1.17.0"
+    chart_version = "v1.19.2"
     repository    = "https://charts.jetstack.io"
   }
 
   cloudNativePGSettings = {
     name          = "cloudnative-pg"
     namespace     = "cnpg-system"
-    chart_version = "0.26.1"
+    chart_version = "0.27.0"
     repository    = "https://cloudnative-pg.github.io/charts"
   }
 
   externalSecretsSettings = {
     name          = "external-secrets"
     namespace     = "external-secrets"
-    chart_version = "1.0.0"
+    chart_version = "1.3.1"
     repository    = "https://charts.external-secrets.io"
   }
 
@@ -44,7 +44,14 @@ locals {
   ingressNginxSettings = {
     name          = "ingress-nginx"
     namespace     = "ingress-nginx"
-    chart_version = "4.14.0"
+    chart_version = "4.14.1"
     repository    = "https://kubernetes.github.io/ingress-nginx"
+  }
+
+  nginxGatewayFabricSettings = {
+    name          = "nginx-gateway-fabric"
+    namespace     = "nginx-gateway"
+    chart_version = "2.3.0"
+    repository    = "https://nginxinc.github.io/nginx-gateway-fabric"
   }
 }

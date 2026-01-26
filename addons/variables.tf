@@ -45,5 +45,4 @@ variable "azureSubscriptionId" {
 
 variable "azureKeyVaultUrl" {
   description = "Azure Key Vault URL"
-  default = "https://labgrid.vault.azure.net"
 }

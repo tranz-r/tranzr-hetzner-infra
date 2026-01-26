@@ -11,7 +11,7 @@ resource "hcloud_network" "net" {
 resource "hcloud_network_subnet" "subnet" {
   network_id   = hcloud_network.net.id
   type         = "cloud"
-  network_zone = "${var.region}-1"
+  network_zone = var.network_zone
   ip_range     = "10.20.0.0/24"
 }
 
@@ -77,12 +77,17 @@ resource "hcloud_server" "master" {
   name         = local.master_hostname
   image        = var.image
   server_type  = var.master_type
-  location     = var.region
+  location     = var.location
   ssh_keys     = [hcloud_ssh_key.me.id]
   firewall_ids = [hcloud_firewall.k8s.id]
 
   network {
     network_id = hcloud_network.net.id
+  }
+
+  public_net {
+    ipv4_enabled = true
+    ipv6_enabled = true
   }
 
   user_data = data.template_file.master_cloudinit.rendered
@@ -97,7 +102,7 @@ resource "hcloud_server" "worker" {
   name         = local.worker_hostnames[count.index]
   image        = var.image
   server_type  = var.worker_type
-  location     = var.region
+  location     = var.location
   ssh_keys     = [hcloud_ssh_key.me.id]
   firewall_ids = [hcloud_firewall.k8s.id]
 
@@ -107,6 +112,11 @@ resource "hcloud_server" "worker" {
 
   network {
     network_id = hcloud_network.net.id
+  }
+
+  public_net {
+    ipv4_enabled = true
+    ipv6_enabled = true
   }
 
   user_data = templatefile("${path.module}/cloudinit/worker.yaml.tmpl", {

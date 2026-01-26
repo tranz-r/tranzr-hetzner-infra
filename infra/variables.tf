@@ -17,10 +17,16 @@ variable "ssh_private_key_path" {
   description = "SSH private key path"
 }
 
-variable "region"       { 
+variable "network_zone"       { 
   type = string  
-  default = "nbg1" 
-  description = "Hetzner Cloud region"
+  default = "eu-central"
+  description = "Hetzner Cloud network zone"
+}
+
+variable "location"       { 
+  type = string  
+  default = "nbg1"
+  description = "Hetzner Cloud location"
 }
 
 variable "image"        { 
