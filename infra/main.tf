@@ -94,7 +94,7 @@ resource "hcloud_server" "master" {
   user_data = data.template_file.master_cloudinit.rendered
 
   lifecycle {
-    create_before_destroy = true
+    # create_before_destroy = true
   }
 }
 
@@ -108,7 +108,7 @@ resource "hcloud_server" "worker" {
   firewall_ids = [hcloud_firewall.k8s.id]
 
   lifecycle {
-    create_before_destroy = true
+    # create_before_destroy = true
   }
 
   network {
