@@ -134,6 +134,8 @@ resource "helm_release" "ingress_nginx" {
   chart      = local.ingressNginxSettings.name
   version    = local.ingressNginxSettings.chart_version
 
+  wait = true
+
   namespace        = local.ingressNginxSettings.namespace
   create_namespace = true
   values           = [file("${path.module}/values/ingress-nginx/values.yaml")]
@@ -154,10 +156,11 @@ resource "helm_release" "cert_manager" {
     file("${path.module}/values/cert-manager/values.yaml") 
     ]
 
-  wait             = false
-  timeout          = 300
-  wait_for_jobs    = false
-  atomic           = false
+  wait = true
+  # wait             = false
+  # timeout          = 300
+  # wait_for_jobs    = false
+  # atomic           = false
 
   set = [
     {
