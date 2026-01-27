@@ -55,4 +55,12 @@ locals {
     repository    = "oci://ghcr.io/nginx/charts"
     chart         = "nginx-gateway-fabric"
   }
+
+  ciliumSettings = {
+    name          = "cilium"
+    namespace     = "kube-system"
+    chart_version = "1.18.6"
+    repository    = "https://helm.cilium.io/"
+    podCIDR       = "10.42.0.0/16"
+  }
 }

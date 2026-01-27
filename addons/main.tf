@@ -26,6 +26,30 @@ resource "helm_release" "hcloud_ccm" {
   depends_on = [kubernetes_secret.hcloud_ccm]
 }
 
+# Cilium CNI - must be installed early, right after CCM
+resource "helm_release" "cilium" {
+  name       = local.ciliumSettings.name
+  repository = local.ciliumSettings.repository
+  chart      = local.ciliumSettings.name
+  version    = local.ciliumSettings.chart_version
+  namespace  = local.ciliumSettings.namespace
+
+  set = [{
+    name  = "ipam.operator.clusterPoolIPv4PodCIDRList"
+    value = local.ciliumSettings.podCIDR
+  },
+  {
+    name  = "kubeProxyReplacement"
+    value = "true"
+  },
+  {
+    name  = "routingMode"
+    value = "native"
+  }]
+
+  depends_on = [helm_release.hcloud_ccm]
+}
+
 # CSI driver + secret
 resource "helm_release" "hcloud_csi" {
   name       = "hcloud-csi"
@@ -33,6 +57,8 @@ resource "helm_release" "hcloud_csi" {
   chart      = "hcloud-csi"
   namespace  = local.hetznerCloudSettings.namespace
   version = local.hetznerCloudSettings.hcloud_csi_version
+  
+  depends_on = [helm_release.cilium]
 }
 
 resource "kubernetes_secret" "hcloud_csi" {
@@ -73,7 +99,7 @@ resource "helm_release" "ingress_nginx" {
   namespace        = local.ingressNginxSettings.namespace
   create_namespace = true
   values           = [file("${path.module}/values/ingress-nginx/values.yaml")]
-  depends_on       = [helm_release.hcloud_ccm]
+  depends_on       = [helm_release.cilium]
 }
 
 
@@ -90,8 +116,10 @@ resource "helm_release" "cert_manager" {
     file("${path.module}/values/cert-manager/values.yaml") 
     ]
 
-  wait    = true
-  timeout = 300
+  wait             = false
+  timeout          = 300
+  wait_for_jobs    = false
+  atomic           = false
 
   set = [
     {
@@ -331,7 +359,7 @@ resource "terraform_data" "gateway_api_crds" {
 EOT
   }
 
-  depends_on = [helm_release.hcloud_ccm]
+  depends_on = [helm_release.cilium]
 }
 
 resource "null_resource" "wait_for_gateway_api_crds" {

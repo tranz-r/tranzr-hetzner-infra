@@ -4,7 +4,10 @@ package_update: true
 packages: [curl]
 runcmd:
   - curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL='${k3s_channel}' K3S_TOKEN='${k3s_token}' sh -s - server \
-    --disable flannel,local-storage,servicelb,traefik \
+    --disable=traefik \
+    --disable=servicelb \
+    --disable=local-storage \
+    --disable=flannel \
     --disable-cloud-controller \
     --kubelet-arg cloud-provider=external \
     --disable-kube-proxy \
