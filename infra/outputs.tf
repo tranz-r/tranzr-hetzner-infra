@@ -11,3 +11,11 @@ output "k3s_token" {
   value     = random_password.k3s_token.result
   sensitive = true
 }
+
+output "network_id" {
+  value = hcloud_network.net.id
+}
+
+output "network_subnet_cidr" {
+  value = hcloud_network_subnet.subnet.ip_range
+}

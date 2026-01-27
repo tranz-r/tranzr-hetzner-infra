@@ -28,17 +28,31 @@ resource "helm_release" "cilium" {
   ]
 }
 
+data "terraform_remote_state" "infra" {
+  backend = "azurerm"
+
+  config = {
+    resource_group_name  = "tranzr-move-rg"
+    storage_account_name = "tranzrmovessa"
+    container_name       = "tranzr-infra-tfstate"
+    key                  = "infra.tfstate"
+  }
+
+  depends_on = [helm_release.cilium]
+}
+
 
 # Secret for CCM
 resource "kubernetes_secret_v1" "hcloud_token_secret" {
   metadata { 
-    name = "hcloud-token-secret"
+    name = "hcloud"
     namespace = local.hetznerCloudSettings.namespace 
     }
 
-  data     = { 
-    hcloud-token = var.hcloud_token 
-    }
+  data     = {
+    token = var.hcloud_token
+    network = data.terraform_remote_state.infra.outputs.network_id
+  }
 
   type     = "Opaque"
   depends_on = [helm_release.cilium]
@@ -51,12 +65,23 @@ resource "helm_release" "hcloud_ccm" {
   namespace  = local.hetznerCloudSettings.namespace
   version = local.hetznerCloudSettings.ccm_version
 
-  values = [yamlencode({
-    secret = { 
-      name = kubernetes_secret_v1.hcloud_token_secret.metadata[0].name 
-      key = "hcloud-token"
+  set = [
+    {
+      name  = "networking.enabled"
+      value = "true"
+    },
+    {
+      name  = "networking.clusterCIDR"
+      value = data.terraform_remote_state.infra.outputs.network_subnet_cidr
     }
-  })]
+  ]
+
+  # values = [yamlencode({
+  #   secret = { 
+  #     name = kubernetes_secret_v1.hcloud_token_secret.metadata[0].name 
+  #     key = "hcloud-token"
+  #   }
+  # })]
   depends_on = [helm_release.cilium, kubernetes_secret_v1.hcloud_token_secret]
 }
 
@@ -112,7 +137,7 @@ resource "helm_release" "ingress_nginx" {
   namespace        = local.ingressNginxSettings.namespace
   create_namespace = true
   values           = [file("${path.module}/values/ingress-nginx/values.yaml")]
-  depends_on       = [helm_release.cilium]
+  depends_on       = [helm_release.hcloud_ccm]
 }
 
 
@@ -141,7 +166,7 @@ resource "helm_release" "cert_manager" {
     }
   ]
 
-  depends_on = [helm_release.cilium]
+  depends_on = [helm_release.hcloud_ccm]
 }
 
 
@@ -160,6 +185,7 @@ resource "helm_release" "external_secrets_operator" {
   }]
 
   wait = true
+  depends_on = [helm_release.hcloud_ccm]
 }
 
 
@@ -172,5 +198,6 @@ resource "helm_release" "cloudnative-pg-operator" {
   create_namespace = true
 
   wait = true
+  depends_on = [helm_release.hcloud_ccm]
 }
 
