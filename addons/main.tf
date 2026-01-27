@@ -129,7 +129,7 @@ resource "helm_release" "cert_manager" {
     }
   ]
 
-  dependency_update = [helm_release.cilium, helm_release.hcloud_ccm]
+  depends_on = [helm_release.cilium, helm_release.hcloud_ccm]
 }
 
 # resource "null_resource" "wait_for_cert_manager_crds" {
