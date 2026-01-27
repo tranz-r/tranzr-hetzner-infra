@@ -16,11 +16,16 @@ resource "helm_release" "cilium" {
   {
     name  = "kubeProxyReplacement"
     value = "true"
-  },
-  {
-    name  = "routingMode"
-    value = "native"
-  }]
+  }
+  # {
+  #   name  = "routingMode"
+  #   value = "native"
+  # },
+  # {
+  #   name  = "ipv4NativeRoutingCIDR"
+  #   value = local.ciliumSettings.podCIDR
+  # }
+  ]
 }
 
 
