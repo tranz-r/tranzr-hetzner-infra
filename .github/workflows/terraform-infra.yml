@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       destroy:
-        description: 'Destroy all resources (addons and infrastructure)'
+        description: "Destroy all resources (addons and infrastructure)"
         required: false
-        default: 'false'
+        default: "false"
         type: choice
         options:
-          - 'false'
-          - 'true'
+          - "false"
+          - "true"
   push:
     branches:
       - main
@@ -27,7 +27,7 @@ permissions:
   id-token: write
 
 jobs:
-  infrastructure-deployment:
+  hetzner-infra-deployment:
     if: github.event.inputs.destroy != 'true'
     runs-on: ubuntu-latest
     environment: production
@@ -92,8 +92,8 @@ jobs:
           path: infra/kubeconfig
 
   kubernetes-addons-deployment:
-    needs: infrastructure-deployment
-    if: github.event.inputs.destroy != 'true' && needs.infrastructure-deployment.result == 'success'
+    needs: hetzner-infra-deployment
+    if: github.event.inputs.destroy != 'true' && needs.hetzner-infra-deployment.result == 'success'
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -162,6 +162,77 @@ jobs:
         working-directory: addons
         run: terraform apply -auto-approve
 
+  kubernetes-resources-deployment:
+    needs: kubernetes-addons-deployment
+    if: github.event.inputs.destroy != 'true' && needs.kubernetes-addons-deployment.result == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TF_VAR_kubeconfig_path: "${{ github.workspace }}/resources/kubeconfig"
+      TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
+      TF_VAR_letsencryptEmail: ${{ secrets.LETSENCRYPT_EMAIL }}
+      TF_VAR_tranzrCloudflareApiTokenKey: ${{ secrets.TRANZR_CLOUDFLARE_API_TOKEN_KEY }}
+      TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
+      TF_VAR_azureServicePrincipalClientId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_ID }}
+      TF_VAR_azureServicePrincipalClientSecret: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET }}
+      TF_VAR_azureServicePrincipalTenantId: ${{ vars.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
+      TF_VAR_azureSubscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_azureKeyVaultUrl: ${{ vars.AZURE_KEY_VAULT_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download kubeconfig artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kubeconfig
+          path: ./resources
+
+      - name: Verify kubeconfig exists
+        run: |
+          ls -la ./resources/
+          if [ ! -f ./resources/kubeconfig ]; then
+            echo "Error: kubeconfig file not found at ./resources/kubeconfig"
+            exit 1
+          fi
+          echo "Kubeconfig found at: $(pwd)/resources/kubeconfig"
+
+      # - name: Install kubectl
+      #   run: |
+      #     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      #     chmod +x kubectl
+      #     sudo mv kubectl /usr/local/bin/
+      #     kubectl version --client
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Set Terraform Environment Variables
+        run: |
+          echo "ARM_CLIENT_ID=$(jq -r .clientId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$(jq -r .clientSecret <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$(jq -r .tenantId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
+
+      - name: Terraform Init (Azure remote state)
+        working-directory: resources
+        run: terraform init -upgrade
+
+      - name: Terraform Validate
+        working-directory: resources
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: resources
+        continue-on-error: true
+        run: terraform plan
+
+      - name: Terraform Apply
+        working-directory: resources
+        run: terraform apply -auto-approve
+
   infrastructure-destroy:
     if: github.event.inputs.destroy == 'true'
     runs-on: ubuntu-latest
@@ -195,6 +266,22 @@ jobs:
           echo "ARM_TENANT_ID=$(jq -r .tenantId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
 
+      - name: Destroy Kubernetes Resources
+        working-directory: resources
+        env:
+          TF_VAR_kubeconfig_path: "${{ github.workspace }}/addons/kubeconfig"
+          TF_VAR_letsencryptEmail: ${{ secrets.LETSENCRYPT_EMAIL }}
+          TF_VAR_tranzrCloudflareApiTokenKey: ${{ secrets.TRANZR_CLOUDFLARE_API_TOKEN_KEY }}
+          TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
+          TF_VAR_azureServicePrincipalClientId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_ID }}
+          TF_VAR_azureServicePrincipalClientSecret: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET }}
+          TF_VAR_azureServicePrincipalTenantId: ${{ vars.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
+          TF_VAR_azureSubscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azureKeyVaultUrl: ${{ vars.AZURE_KEY_VAULT_URL }}
+        run: |
+          terraform init -upgrade
+          terraform destroy -auto-approve
+
       - name: Destroy Kubernetes Addons
         working-directory: addons
         env:
@@ -212,7 +299,7 @@ jobs:
           terraform init -upgrade
           terraform destroy -auto-approve
 
-      - name: Destroy Infrastructure
+      - name: Destroy HetznerInfrastructure
         working-directory: infra
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
