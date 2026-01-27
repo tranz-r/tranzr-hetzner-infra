@@ -27,6 +27,7 @@ resource "helm_release" "hcloud_ccm" {
 }
 
 # Cilium CNI - must be installed early, right after CCM
+# https://docs.cilium.io/en/stable/installation/k8s-install-helm/
 resource "helm_release" "cilium" {
   name       = local.ciliumSettings.name
   repository = local.ciliumSettings.repository
@@ -127,6 +128,8 @@ resource "helm_release" "cert_manager" {
       value = "true"
     }
   ]
+
+  dependency_update = [helm_release.cilium, helm_release.hcloud_ccm]
 }
 
 # resource "null_resource" "wait_for_cert_manager_crds" {
