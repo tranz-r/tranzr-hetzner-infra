@@ -9,7 +9,10 @@ data "terraform_remote_state" "infra" {
   }
 }
 
-# data.terraform_remote_state.infra.outputs.network_subnet_cidr
+
+# https://medium.com/@vvimal44/set-up-k3s-with-cilium-as-core-networking-0ea110210592
+# https://www.reddit.com/r/MaksIT/comments/1op8mtm/almalinux_10_singlenode_k3s_install_script_with/
+# https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/
 
 # Cilium CNI - must be installed early, right after CCM
 # https://docs.cilium.io/en/stable/installation/k8s-install-helm/

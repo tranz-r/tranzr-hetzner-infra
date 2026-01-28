@@ -35,7 +35,7 @@ terraform {
   backend "azurerm" {
     resource_group_name  = "tranzr-move-rg"
     storage_account_name = "tranzrmovessa"
-    container_name       = "tranzr-addons-tfstate"
+    container_name       = "tranzr-infra-tfstate"
     key                  = "resources-addons.tfstate"
   }
 }
