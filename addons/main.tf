@@ -1,3 +1,16 @@
+data "terraform_remote_state" "infra" {
+  backend = "azurerm"
+
+  config = {
+    resource_group_name  = "tranzr-move-rg"
+    storage_account_name = "tranzrmovessa"
+    container_name       = "tranzr-infra-tfstate"
+    key                  = "infra.tfstate"
+  }
+}
+
+# data.terraform_remote_state.infra.outputs.network_subnet_cidr
+
 # Cilium CNI - must be installed early, right after CCM
 # https://docs.cilium.io/en/stable/installation/k8s-install-helm/
 resource "helm_release" "cilium" {
@@ -16,6 +29,14 @@ resource "helm_release" "cilium" {
   {
     name  = "kubeProxyReplacement"
     value = "true"
+  },
+  {
+    name = "k8sServiceHost"
+    value = data.terraform_remote_state.infra.outputs.master_private_ip
+  },
+  {
+    name = "k8sServicePort"
+    value = "6443"
   }
   # {
   #   name  = "routingMode"
@@ -26,20 +47,21 @@ resource "helm_release" "cilium" {
   #   value = local.ciliumSettings.podCIDR
   # }
   ]
+  depends_on = [data.terraform_remote_state.infra]
 }
 
-data "terraform_remote_state" "infra" {
-  backend = "azurerm"
+# data "terraform_remote_state" "infra" {
+#   backend = "azurerm"
 
-  config = {
-    resource_group_name  = "tranzr-move-rg"
-    storage_account_name = "tranzrmovessa"
-    container_name       = "tranzr-infra-tfstate"
-    key                  = "infra.tfstate"
-  }
+#   config = {
+#     resource_group_name  = "tranzr-move-rg"
+#     storage_account_name = "tranzrmovessa"
+#     container_name       = "tranzr-infra-tfstate"
+#     key                  = "infra.tfstate"
+#   }
 
-  depends_on = [helm_release.cilium]
-}
+#   depends_on = [helm_release.cilium]
+# }
 
 
 # Secret for CCM
