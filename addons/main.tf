@@ -26,7 +26,7 @@ resource "helm_release" "cilium" {
   wait = true
 
   set = [{
-    name  = "ipam.operator.clusterPoolIPv4PodCIDRList"
+    name  = "ipam.operator.clusterPoolIPv4PodCIDRList[0]"
     value = local.ciliumSettings.podCIDR
   },
   {
@@ -41,30 +41,9 @@ resource "helm_release" "cilium" {
     name = "k8sServicePort"
     value = "6443"
   }
-  # {
-  #   name  = "routingMode"
-  #   value = "native"
-  # },
-  # {
-  #   name  = "ipv4NativeRoutingCIDR"
-  #   value = local.ciliumSettings.podCIDR
-  # }
   ]
   depends_on = [data.terraform_remote_state.infra]
 }
-
-# data "terraform_remote_state" "infra" {
-#   backend = "azurerm"
-
-#   config = {
-#     resource_group_name  = "tranzr-move-rg"
-#     storage_account_name = "tranzrmovessa"
-#     container_name       = "tranzr-infra-tfstate"
-#     key                  = "infra.tfstate"
-#   }
-
-#   depends_on = [helm_release.cilium]
-# }
 
 
 # Secret for CCM
