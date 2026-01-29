@@ -32,6 +32,10 @@ resource "helm_release" "cilium" {
     value = local.ciliumSettings.podCIDR
   },
   {
+    name  = "ipam.mode"
+    value = "cluster-pool"
+  },
+  {
     name  = "kubeProxyReplacement"
     value = "true"
   },
