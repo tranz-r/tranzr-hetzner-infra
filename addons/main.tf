@@ -23,7 +23,9 @@ resource "helm_release" "cilium" {
   version    = local.ciliumSettings.chart_version
   namespace  = local.ciliumSettings.namespace
 
-  wait = true
+  create_namespace = true
+
+  # wait = true
 
   set = [{
     name  = "ipam.operator.clusterPoolIPv4PodCIDRList[0]"
@@ -59,7 +61,6 @@ resource "kubernetes_secret_v1" "hcloud_token_secret" {
   }
 
   type     = "Opaque"
-  depends_on = [helm_release.cilium]
 }
 
 resource "helm_release" "hcloud_ccm" {
