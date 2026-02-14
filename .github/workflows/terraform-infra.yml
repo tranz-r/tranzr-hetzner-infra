@@ -77,6 +77,21 @@ jobs:
           TF_VAR_ssh_private_key_path: "$HOME/.ssh/id_ed25519"
         run: terraform apply -auto-approve
 
+      - name: Wait for k3s master and API
+        working-directory: infra
+        run: |
+          MASTER_IP=$(terraform output -raw master_public_ip)
+          echo "Waiting for k3s on $MASTER_IP (cloud-init can take 1–3 min)..."
+          for i in $(seq 1 30); do
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i $HOME/.ssh/id_ed25519 root@$MASTER_IP "test -f /etc/rancher/k3s/k3s.yaml && curl -sfk https://127.0.0.1:6443/healthz 2>/dev/null" 2>/dev/null; then
+              echo "k3s API is ready."
+              break
+            fi
+            echo "Attempt $i/30: not ready yet..."
+            sleep 10
+          done
+          ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_ed25519 root@$MASTER_IP "test -f /etc/rancher/k3s/k3s.yaml" || exit 1
+
       - name: Fetch kubeconfig
         working-directory: infra
         run: |
