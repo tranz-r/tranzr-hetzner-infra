@@ -16,6 +16,8 @@ data "terraform_remote_state" "infra" {
 
 # Cilium CNI - must be installed early, right after CCM
 # https://docs.cilium.io/en/stable/installation/k8s-install-helm/
+
+# https://blogs.learningdevops.com/the-complete-guide-to-setting-up-cilium-on-k3s-with-kubernetes-gateway-api-8f78adcddb4d
 resource "helm_release" "cilium" {
   name       = local.ciliumSettings.name
   repository = local.ciliumSettings.repository
@@ -32,6 +34,10 @@ resource "helm_release" "cilium" {
     value = local.ciliumSettings.podCIDR
   },
   {
+    name  = "operator.replicas"
+    value = 1
+  },
+  {
     name  = "ipam.mode"
     value = "cluster-pool"
   },
@@ -46,6 +52,15 @@ resource "helm_release" "cilium" {
   {
     name = "k8sServicePort"
     value = "6443"
+  },
+  # k3s expects CNI config in its own dir; default /etc/cni/net.d is ignored
+  {
+    name  = "cni.confPath"
+    value = "/var/lib/rancher/k3s/agent/etc/cni/net.d" 
+  },
+  {
+    name  = "cni.binPath"
+    value = "/var/lib/rancher/k3s/data/current/bin"
   }
   ]
   depends_on = [data.terraform_remote_state.infra]
