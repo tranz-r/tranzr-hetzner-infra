@@ -9,9 +9,9 @@ write_files:
       #!/usr/bin/env bash
       set -euo pipefail
 
+      # get.k3s.io reads these env vars; they are passed to the child shell (sh -s -)
       export INSTALL_K3S_CHANNEL="${k3s_channel}"
       export K3S_TOKEN="${k3s_token}"
-
       export INSTALL_K3S_EXEC="server \
         --disable=traefik \
         --disable=servicelb \
@@ -24,6 +24,7 @@ write_files:
         --write-kubeconfig-mode 0644 \
         --cluster-cidr 10.42.0.0/16 \
         --service-cidr 10.43.0.0/16 \
+        --cluster-init \
         --node-name ${node_name}"
 
       curl -sfL https://get.k3s.io | sh -s -

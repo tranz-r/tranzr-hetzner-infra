@@ -26,8 +26,8 @@ resource "helm_release" "cilium" {
   namespace  = local.ciliumSettings.namespace
 
   create_namespace = true
-
-  # wait = true
+  wait             = true
+  timeout          = 600 # 10 min so Cilium can come up before CCM/CSI; avoids state/release mismatch on slow clusters
 
   set = [{
     name  = "ipam.operator.clusterPoolIPv4PodCIDRList[0]"
