@@ -12,7 +12,11 @@ write_files:
       # get.k3s.io reads these env vars; they are passed to the child shell (sh -s -)
       export INSTALL_K3S_CHANNEL="${k3s_channel}"
       export K3S_TOKEN="${k3s_token}"
+      # --tls-san and --advertise-address so API cert includes private IP; Cilium uses it (k8sServiceHost)
       export INSTALL_K3S_EXEC="server \
+        --node-ip ${master_private_ip} \
+        --advertise-address ${master_private_ip} \
+        --tls-san ${master_private_ip} \
         --disable=traefik \
         --disable=servicelb \
         --disable=local-storage \

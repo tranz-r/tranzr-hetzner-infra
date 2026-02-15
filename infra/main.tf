@@ -68,16 +68,18 @@ resource "random_password" "k3s_token" {
 }
 
 locals {
-  master_hostname  = "${var.cluster_name}-control-plane"
-  worker_hostnames = [for i in range(var.workers) : "${var.cluster_name}-worker-${i + 1}"]
+  master_hostname   = "${var.cluster_name}-control-plane"
+  worker_hostnames  = [for i in range(var.workers) : "${var.cluster_name}-worker-${i + 1}"]
+  master_private_ip = "10.20.0.2" # static so we can put it in k3s --tls-san (Cilium connects to this IP)
 }
 
 data "template_file" "master_cloudinit" {
   template = file("${path.module}/cloudinit/master.yaml.tmpl")
   vars = {
-    k3s_token   = random_password.k3s_token.result
-    k3s_channel = var.k3s_channel
-    node_name   = local.master_hostname
+    k3s_token          = random_password.k3s_token.result
+    k3s_channel        = var.k3s_channel
+    node_name          = local.master_hostname
+    master_private_ip  = local.master_private_ip
   }
 }
 
@@ -91,7 +93,8 @@ resource "hcloud_server" "master" {
 
   network {
     network_id = hcloud_network.net.id
-    alias_ips = []
+    ip         = local.master_private_ip
+    alias_ips  = []
   }
 
   public_net {
@@ -116,7 +119,7 @@ resource "hcloud_server" "worker" {
   firewall_ids = [hcloud_firewall.k8s.id]
 
   lifecycle {
-    # create_before_destroy = true
+    create_before_destroy = true
   }
 
   network {
