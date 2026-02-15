@@ -1,10 +1,10 @@
 
 output "master_public_ip" {
-  value = hcloud_server.master.ipv4_address
+  value = hcloud_primary_ip.master.ip_address
 }
 
 output "master_private_ip" {
-  value = [for n in hcloud_server.master.network : n.ip][0]
+  value = local.master_private_ip
 }
 
 output "k3s_token" {

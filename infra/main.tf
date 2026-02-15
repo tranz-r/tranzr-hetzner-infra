@@ -67,6 +67,15 @@ resource "random_password" "k3s_token" {
   special = false
 }
 
+# Reserved public IP so we know it at plan time and can add it to k3s --tls-san (kubeconfig uses this)
+resource "hcloud_primary_ip" "master" {
+  name          = "${var.cluster_name}-master-ipv4"
+  location = var.location
+  type          = "ipv4"
+  assignee_type = "server"
+  auto_delete   = false
+}
+
 locals {
   master_hostname   = "${var.cluster_name}-control-plane"
   worker_hostnames  = [for i in range(var.workers) : "${var.cluster_name}-worker-${i + 1}"]
@@ -80,6 +89,7 @@ data "template_file" "master_cloudinit" {
     k3s_channel        = var.k3s_channel
     node_name          = local.master_hostname
     master_private_ip  = local.master_private_ip
+    master_public_ip   = hcloud_primary_ip.master.ip_address # so API cert includes it (kubeconfig / Terraform use this)
   }
 }
 
@@ -99,6 +109,7 @@ resource "hcloud_server" "master" {
 
   public_net {
     ipv4_enabled = true
+    ipv4         = hcloud_primary_ip.master.id
     ipv6_enabled = true
   }
 
