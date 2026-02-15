@@ -37,10 +37,6 @@ resource "helm_release" "cilium" {
     name  = "operator.replicas"
     value = 1
   },
-  # {
-  #   name  = "ipam.mode"
-  #   value = "cluster-pool"
-  # },
   {
     name  = "kubeProxyReplacement"
     value = "true"
@@ -52,16 +48,7 @@ resource "helm_release" "cilium" {
   {
     name = "k8sServicePort"
     value = "6443"
-  },
-  # k3s expects CNI config in its own dir; default /etc/cni/net.d is ignored
-  # {
-  #   name  = "cni.confPath"
-  #   value = "/var/lib/rancher/k3s/agent/etc/cni/net.d" 
-  # },
-  # {
-  #   name  = "cni.binPath"
-  #   value = "/var/lib/rancher/k3s/data/current/bin"
-  # }
+  }
   ]
   depends_on = [data.terraform_remote_state.infra]
 }
@@ -133,24 +120,7 @@ resource "kubernetes_secret_v1" "hcloud_csi_token_secret" {
   depends_on = [helm_release.cilium, helm_release.hcloud_ccm, helm_release.hcloud_csi]
 }
 
-# Default StorageClass
-resource "kubernetes_storage_class_v1" "hcloud_volumes" {
-  metadata {
-    name = "hcloud-volumes"
-    annotations = { 
-      "storageclass.kubernetes.io/is-default-class" = "true" 
-      }
-  }
-  storage_provisioner    = "csi.hetzner.cloud"
-  reclaim_policy         = "Delete"
-  allow_volume_expansion = true
-  volume_binding_mode    = "WaitForFirstConsumer"
-  parameters = { 
-    type = "network-ssd" 
-    }
-  depends_on = [helm_release.hcloud_csi]
-}
-
+# StorageClass "hcloud-volumes" is created by the hcloud-csi Helm chart; do not create it here or you get "already exists"
 
 resource "helm_release" "ingress_nginx" {
   name       = local.ingressNginxSettings.name
@@ -180,11 +150,9 @@ resource "helm_release" "cert_manager" {
     file("${path.module}/values/cert-manager/values.yaml") 
     ]
 
-  wait = true
-  # wait             = false
-  # timeout          = 300
-  # wait_for_jobs    = false
-  # atomic           = false
+  wait           = true
+  timeout        = 600 # cert-manager webhook can be slow to become ready; avoid post-install timeout
+  wait_for_jobs  = false # skip waiting for install CRDs job so apply doesn't fail if webhook is slow
 
   set = [
     {
