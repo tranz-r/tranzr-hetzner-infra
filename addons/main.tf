@@ -37,10 +37,10 @@ resource "helm_release" "cilium" {
     name  = "operator.replicas"
     value = 1
   },
-  {
-    name  = "ipam.mode"
-    value = "cluster-pool"
-  },
+  # {
+  #   name  = "ipam.mode"
+  #   value = "cluster-pool"
+  # },
   {
     name  = "kubeProxyReplacement"
     value = "true"
@@ -54,14 +54,14 @@ resource "helm_release" "cilium" {
     value = "6443"
   },
   # k3s expects CNI config in its own dir; default /etc/cni/net.d is ignored
-  {
-    name  = "cni.confPath"
-    value = "/var/lib/rancher/k3s/agent/etc/cni/net.d" 
-  },
-  {
-    name  = "cni.binPath"
-    value = "/var/lib/rancher/k3s/data/current/bin"
-  }
+  # {
+  #   name  = "cni.confPath"
+  #   value = "/var/lib/rancher/k3s/agent/etc/cni/net.d" 
+  # },
+  # {
+  #   name  = "cni.binPath"
+  #   value = "/var/lib/rancher/k3s/data/current/bin"
+  # }
   ]
   depends_on = [data.terraform_remote_state.infra]
 }
