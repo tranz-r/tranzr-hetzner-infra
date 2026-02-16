@@ -184,8 +184,8 @@ resource "helm_release" "cert_manager" {
     ]
 
   wait           = true
-  timeout        = 600 # cert-manager webhook can be slow to become ready; avoid post-install timeout
-  wait_for_jobs  = false # skip waiting for install CRDs job so apply doesn't fail if webhook is slow
+  timeout        = 900 # allow startupapicheck job to complete (job --wait=10m; 15 min covers one full attempt + buffer)
+  wait_for_jobs  = true
 
   set = [
     {
