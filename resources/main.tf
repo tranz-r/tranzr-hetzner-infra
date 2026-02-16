@@ -70,6 +70,8 @@ resource "kubernetes_manifest" "tranzr-letsencrypt-staging" {
       }
     }
   }
+
+  depends_on = [null_resource.wait_for_cert_manager_crds]
 }
 
 resource "kubernetes_manifest" "tranzr-letsencrypt-production" {
@@ -103,6 +105,8 @@ resource "kubernetes_manifest" "tranzr-letsencrypt-production" {
       }
     }
   }
+
+  depends_on = [null_resource.wait_for_cert_manager_crds]
 }
 
 resource "kubernetes_secret_v1" "azure_secret_sp_secret" {
@@ -177,26 +181,26 @@ resource "kubernetes_manifest" "azure_kv_cluster_store" {
   depends_on = [kubernetes_secret_v1.azure_secret_sp_secret, null_resource.wait_for_external_secrets_operator_crds]
 }
 
-resource "terraform_data" "gateway_api_crds" {
-  provisioner "local-exec" {
-    environment = {
-      KUBECONFIG = var.kubeconfig_path
-    }
-    command = <<EOT
-      echo "Using kubeconfig: ${var.kubeconfig_path}"
-      if [ ! -f "${var.kubeconfig_path}" ]; then
-        echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
-        exit 1
-      fi
-      kubectl apply --server-side \
-        -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
-      echo "Gateway API CRDs applied."
-    EOT
-  }
-}
+# resource "terraform_data" "gateway_api_crds" {
+#   provisioner "local-exec" {
+#     environment = {
+#       KUBECONFIG = var.kubeconfig_path
+#     }
+#     command = <<EOT
+#       echo "Using kubeconfig: ${var.kubeconfig_path}"
+#       if [ ! -f "${var.kubeconfig_path}" ]; then
+#         echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
+#         exit 1
+#       fi
+#       kubectl apply --server-side \
+#         -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+#       echo "Gateway API CRDs applied."
+#     EOT
+#   }
+# }
 
 resource "null_resource" "wait_for_gateway_api_crds" {
-  depends_on = [terraform_data.gateway_api_crds]
+  # depends_on = [terraform_data.gateway_api_crds]
 
   provisioner "local-exec" {
     environment = {

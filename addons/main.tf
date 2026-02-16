@@ -9,6 +9,26 @@ data "terraform_remote_state" "infra" {
   }
 }
 
+resource "terraform_data" "gateway_api_crds" {
+  provisioner "local-exec" {
+    environment = {
+      KUBECONFIG = var.kubeconfig_path
+    }
+    command = <<EOT
+      echo "Using kubeconfig: ${var.kubeconfig_path}"
+      if [ ! -f "${var.kubeconfig_path}" ]; then
+        echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
+        exit 1
+      fi
+      kubectl apply --server-side \
+        -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+      echo "Gateway API CRDs applied."
+    EOT
+  }
+
+  depends_on = [data.terraform_remote_state.infra]
+}
+
 
 # https://medium.com/@vvimal44/set-up-k3s-with-cilium-as-core-networking-0ea110210592
 # https://www.reddit.com/r/MaksIT/comments/1op8mtm/almalinux_10_singlenode_k3s_install_script_with/
@@ -48,9 +68,25 @@ resource "helm_release" "cilium" {
   {
     name = "k8sServicePort"
     value = "6443"
+  },
+  {
+    name = "gatewayAPI.enabled"
+    value = "true"
+  },
+  {
+    name = "debug.enabled"
+    value = "true"
+  },
+  {
+    name = "l2Announce.enabled"
+    value = "true"
+  },
+  {
+    name = "externalIPs.enabled"
+    value = "true"
   }
   ]
-  depends_on = [data.terraform_remote_state.infra]
+  depends_on = [data.terraform_remote_state.infra, terraform_data.gateway_api_crds]
 }
 
 
@@ -153,7 +189,7 @@ resource "helm_release" "cert_manager" {
 
   set = [
     {
-      name  = "installCRDs"
+      name  = "crds.enabled"
       value = "true"
     }
   ]

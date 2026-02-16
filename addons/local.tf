@@ -23,7 +23,7 @@ locals {
   externalSecretsSettings = {
     name          = "external-secrets"
     namespace     = "external-secrets"
-    chart_version = "1.3.1"
+    chart_version = "2.0.0"
     repository    = "https://charts.external-secrets.io"
   }
 
