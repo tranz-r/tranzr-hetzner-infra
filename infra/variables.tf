@@ -43,7 +43,7 @@ variable "worker_type"  {
 
 variable "workers"      { 
   type = number  
-  default = 2 
+  default = 1 
   description = "Number of workers"
 }
 

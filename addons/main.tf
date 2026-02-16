@@ -27,7 +27,7 @@ resource "helm_release" "cilium" {
 
   create_namespace = true
   wait             = true
-  timeout          = 600 # 10 min so Cilium can come up before CCM/CSI; avoids state/release mismatch on slow clusters
+  # timeout          = 600 # 10 min so Cilium can come up before CCM/CSI; avoids state/release mismatch on slow clusters
 
   set = [{
     name  = "ipam.operator.clusterPoolIPv4PodCIDRList[0]"
@@ -87,40 +87,37 @@ resource "helm_release" "hcloud_ccm" {
     }
   ]
 
-  # values = [yamlencode({
-  #   secret = { 
-  #     name = kubernetes_secret_v1.hcloud_token_secret.metadata[0].name 
-  #     key = "hcloud-token"
-  #   }
-  # })]
   depends_on = [helm_release.cilium, kubernetes_secret_v1.hcloud_token_secret]
 }
 
 
 # CSI driver + secret
+# StorageClass "hcloud-volumes" is created by the hcloud-csi Helm chart; do not create it here or you get "already exists"
 resource "helm_release" "hcloud_csi" {
   name       = "hcloud-csi"
   repository = local.hetznerCloudSettings.repository
   chart      = "hcloud-csi"
   namespace  = local.hetznerCloudSettings.namespace
   version = local.hetznerCloudSettings.hcloud_csi_version
-  
+
+  wait = true
+  wait_for_jobs = true
+  timeout = 600
   depends_on = [helm_release.cilium, helm_release.hcloud_ccm]
 }
 
 # Is this needed?
-resource "kubernetes_secret_v1" "hcloud_csi_token_secret" {
-  metadata { 
-    name = "hcloud-csi-token-secret"
-    namespace = local.hetznerCloudSettings.namespace
-    }
+# resource "kubernetes_secret_v1" "hcloud_csi_token_secret" {
+#   metadata { 
+#     name = "hcloud-csi-token-secret"
+#     namespace = local.hetznerCloudSettings.namespace
+#     }
 
-  data     = { hcloud-token = var.hcloud_token }
-  type     = "Opaque"
-  depends_on = [helm_release.cilium, helm_release.hcloud_ccm, helm_release.hcloud_csi]
-}
+#   data     = { hcloud-token = var.hcloud_token }
+#   type     = "Opaque"
+#   depends_on = [helm_release.cilium, helm_release.hcloud_ccm, helm_release.hcloud_csi]
+# }
 
-# StorageClass "hcloud-volumes" is created by the hcloud-csi Helm chart; do not create it here or you get "already exists"
 
 resource "helm_release" "ingress_nginx" {
   name       = local.ingressNginxSettings.name
