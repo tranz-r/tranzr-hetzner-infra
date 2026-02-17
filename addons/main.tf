@@ -84,6 +84,11 @@ resource "helm_release" "cilium" {
   {
     name = "externalIPs.enabled"
     value = "true"
+  },
+  # https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#external-access-to-clusterip-services
+  {
+    name = "bpf.lbExternalClusterIP"
+    value = "true"
   }
   ]
   depends_on = [data.terraform_remote_state.infra, terraform_data.gateway_api_crds]
