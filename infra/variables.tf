@@ -37,7 +37,8 @@ variable "image"        {
 
 variable "worker_type"  { 
   type = string  
-  default = "cx43" 
+  default = "cpx32"
+  # default = "cx43" 
   description = "Hetzner Cloud server type"
 }
 
