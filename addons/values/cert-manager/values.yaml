@@ -10,17 +10,22 @@
 # below and set enabled: true, and consider increasing timeout/backoffLimit for CI.
 startupapicheck:
   enabled: true
-  timeout: 10m # give webhook + cainjector more time on cold clusters
-  backoffLimit: 20 # more retries before giving up
-config:
-  enableGatewayAPI: true
+  timeout: 5m # give webhook + cainjector more time on cold clusters
+  backoffLimit: 10 # more retries before giving up
+# config:
+#   enableGatewayAPI: true
 
-replicaCount: 2
+# replicaCount: 2
 extraArgs:
-  - --dns01-recursive-nameservers=1.1.1.1:53,9.9.9.9:53
-  - --dns01-recursive-nameservers-only
-podDnsPolicy: None
-podDnsConfig:
-  nameservers:
-    - "1.1.1.1"
-    - "9.9.9.9"
+  # - --dns01-recursive-nameservers=1.1.1.1:53,9.9.9.9:53
+  # - --dns01-recursive-nameservers-only
+  - --enable-gateway-api
+# Controller only: startupapicheck job uses cluster default DNS (no dnsPolicy in its template).
+# Include cluster DNS so the controller can resolve in-cluster names if needed (e.g. webhook service).
+# k3s default cluster DNS is 10.43.0.10; verify with: kubectl get svc -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}'
+# podDnsPolicy: None
+# podDnsConfig:
+#   nameservers:
+#     - "10.43.0.10"   # k3s cluster DNS (CoreDNS) — in-cluster names
+#     - "1.1.1.1"
+#     - "9.9.9.9"
