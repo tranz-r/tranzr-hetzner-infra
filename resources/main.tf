@@ -151,7 +151,7 @@ resource "null_resource" "wait_for_external_secrets_operator_crds" {
 
 resource "kubernetes_manifest" "azure_kv_cluster_store" {
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ClusterSecretStore"
     metadata = {
       name = "azure-kv-cluster-store"
