@@ -60,9 +60,7 @@ provider "helm" {
 }
 
 provider "kubectl" {
-  kubernetes {
-    config_path = var.kubeconfig_path
-  }
+  config_path = var.kubeconfig_path
 }
 
 provider "external" {}
