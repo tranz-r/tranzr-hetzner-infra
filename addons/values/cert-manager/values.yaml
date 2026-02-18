@@ -29,3 +29,7 @@ extraArgs:
 #     - "10.43.0.10"   # k3s cluster DNS (CoreDNS) — in-cluster names
 #     - "1.1.1.1"
 #     - "9.9.9.9"
+
+webhook:
+  hostNetwork: true
+  securePort: 10260
