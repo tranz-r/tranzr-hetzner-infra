@@ -1,0 +1,21 @@
+# Allow the Kubernetes API server to reach the cert-manager webhook on port 443.
+# Without this, Cilium can drop API server -> webhook traffic, causing:
+#   "failed to call webhook: ... context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+# See: https://cert-manager.io/docs/troubleshooting/webhook/
+# Apply after Cilium, before cert-manager so it is in place when the webhook starts.
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-apiserver-to-cert-manager-webhook
+spec:
+  endpointSelector:
+    matchLabels:
+      io.kubernetes.pod.namespace: cert-manager
+      app.kubernetes.io/component: webhook
+  ingress:
+    - fromEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

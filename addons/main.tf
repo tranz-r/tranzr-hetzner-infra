@@ -86,10 +86,19 @@ resource "helm_release" "cilium" {
     value = "true"
   },
   # https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#external-access-to-clusterip-services
-  {
-    name = "bpf.lbExternalClusterIP"
-    value = "true"
-  }
+  # {
+  #   name = "bpf.lbExternalClusterIP"
+  #   value = "true"
+  # },
+  # k3s reads CNI from its own dirs; Cilium default is /etc/cni/net.d → nodes stay NotReady without this
+  # {
+  #   name  = "cni.confPath"
+  #   value = "/var/lib/rancher/k3s/agent/etc/cni/net.d"
+  # },
+  # {
+  #   name  = "cni.binPath"
+  #   value = "/var/lib/rancher/k3s/data/current/bin"
+  # }
   ]
   depends_on = [data.terraform_remote_state.infra, terraform_data.gateway_api_crds]
 }
@@ -175,6 +184,13 @@ resource "helm_release" "ingress_nginx" {
 }
 
 
+# Allow API server -> cert-manager webhook so startupapicheck and webhook validation don't time out.
+# Cilium can drop this traffic unless explicitly allowed (kube-apiserver entity).
+resource "kubectl_manifest" "cilium_allow_apiserver_to_cert_manager_webhook" {
+  yaml_body = file("${path.module}/manifests/cilium-allow-apiserver-to-cert-manager-webhook.yaml")
+  depends_on = [helm_release.cilium]
+}
+
 resource "helm_release" "cert_manager" {
   name             = local.certManagerSettings.name
   namespace        = local.certManagerSettings.namespace
@@ -199,7 +215,7 @@ resource "helm_release" "cert_manager" {
     }
   ]
 
-  depends_on = [helm_release.hcloud_ccm]
+  depends_on = [helm_release.hcloud_ccm, kubectl_manifest.cilium_allow_apiserver_to_cert_manager_webhook]
 }
 
 
