@@ -248,8 +248,8 @@ jobs:
       - name: Fetch kubeconfig
         working-directory: infra-kube-hetzner
         run: |
-          terraform output -raw kubeconfig > ../addons/kubeconfig
-          if [ ! -s ../addons/kubeconfig ]; then
+          terraform output -raw kubeconfig > ${{ github.workspace }}/kubeconfig
+          if [ ! -s ${{ github.workspace }}/kubeconfig ]; then
             echo "::error::kubeconfig is missing or empty"
             exit 1
           fi
@@ -257,7 +257,7 @@ jobs:
       - name: Destroy Kubernetes Resources
         working-directory: resources
         env:
-          TF_VAR_kubeconfig_path: "${{ github.workspace }}/addons/kubeconfig"
+          TF_VAR_kubeconfig_path: "${{ github.workspace }}/kubeconfig"
           TF_VAR_letsencryptEmail: ${{ secrets.LETSENCRYPT_EMAIL }}
           TF_VAR_tranzrCloudflareApiTokenKey: ${{ secrets.TRANZR_CLOUDFLARE_API_TOKEN_KEY }}
           TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
@@ -271,9 +271,9 @@ jobs:
           terraform destroy -auto-approve
 
       - name: Destroy Kubernetes Addons
-        working-directory: addons
+        working-directory: crds
         env:
-          TF_VAR_kubeconfig_path: "${{ github.workspace }}/addons/kubeconfig"
+          TF_VAR_kubeconfig_path: "${{ github.workspace }}/kubeconfig"
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_letsencryptEmail: ${{ secrets.LETSENCRYPT_EMAIL }}
           TF_VAR_tranzrCloudflareApiTokenKey: ${{ secrets.TRANZR_CLOUDFLARE_API_TOKEN_KEY }}
