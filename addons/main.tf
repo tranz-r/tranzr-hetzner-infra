@@ -183,6 +183,48 @@ resource "helm_release" "ingress_nginx" {
   depends_on       = [helm_release.hcloud_ccm]
 }
 
+# Allow API server -> cert-manager webhook so startupapicheck and webhook validation don't time out.
+# Cilium can drop this traffic unless explicitly allowed (kube-apiserver entity).
+# Use provisioner to wait for Cilium CRDs to be available before applying the policy.
+resource "terraform_data" "cilium_allow_apiserver_to_cert_manager_webhook" {
+  provisioner "local-exec" {
+    environment = {
+      KUBECONFIG = var.kubeconfig_path
+    }
+    command = <<EOT
+      echo "Using kubeconfig: ${var.kubeconfig_path}"
+      if [ ! -f "${var.kubeconfig_path}" ]; then
+        echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
+        exit 1
+      fi
+      
+      # Wait for CiliumClusterwideNetworkPolicy CRD to be available (up to 5 minutes)
+      echo "Waiting for CiliumClusterwideNetworkPolicy CRD to be available..."
+      for i in {1..60}; do
+        if kubectl get crd ciliumclusterwidenetworkpolicies.cilium.io >/dev/null 2>&1; then
+          echo "CiliumClusterwideNetworkPolicy CRD found."
+          break
+        fi
+        if [ $i -eq 60 ]; then
+          echo "Timeout waiting for CiliumClusterwideNetworkPolicy CRD"
+          exit 1
+        fi
+        echo "Attempt $i/60: CRD not ready yet, waiting 5 seconds..."
+        sleep 5
+      done
+      
+      # Apply the Cilium policy manifest
+      kubectl apply -f ${path.module}/manifests/cilium-allow-apiserver-to-cert-manager-webhook.yaml
+      echo "Cilium policy applied successfully."
+    EOT
+  }
+
+  depends_on = [helm_release.cilium]
+  
+  # Trigger re-run if the manifest file changes
+  input = filemd5("${path.module}/manifests/cilium-allow-apiserver-to-cert-manager-webhook.yaml")
+}
+
 resource "helm_release" "cert_manager" {
   name             = local.certManagerSettings.name
   namespace        = local.certManagerSettings.namespace
@@ -207,7 +249,7 @@ resource "helm_release" "cert_manager" {
     }
   ]
 
-  depends_on = [helm_release.hcloud_ccm]
+  depends_on = [helm_release.hcloud_ccm, terraform_data.cilium_allow_apiserver_to_cert_manager_webhook]
 }
 
 
