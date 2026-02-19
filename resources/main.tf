@@ -28,8 +28,8 @@ resource "null_resource" "wait_for_cert_manager_crds" {
 resource "kubernetes_secret_v1" "tranzr_cloudflare_token_secret" {
 
   metadata {
-    name = "tranzr-cloudflare-token-secret"
-    namespace = "${local.certManagerSettings.namespace}"
+    name      = "tranzr-cloudflare-token-secret"
+    namespace = local.certManagerSettings.namespace
   }
 
   data = {
@@ -48,8 +48,8 @@ resource "kubernetes_manifest" "tranzr-letsencrypt-staging" {
     }
     spec = {
       acme = {
-        server  = local.clusterIssuerSettings.stagingServer
-        email   = local.clusterIssuerSettings.email
+        server = local.clusterIssuerSettings.stagingServer
+        email  = local.clusterIssuerSettings.email
         privateKeySecretRef = {
           name = local.clusterIssuerSettings.tranzrNameStaging
         }
@@ -83,8 +83,8 @@ resource "kubernetes_manifest" "tranzr-letsencrypt-production" {
     }
     spec = {
       acme = {
-        server  = local.clusterIssuerSettings.productionServer
-        email   = local.clusterIssuerSettings.email
+        server = local.clusterIssuerSettings.productionServer
+        email  = local.clusterIssuerSettings.email
         privateKeySecretRef = {
           name = local.clusterIssuerSettings.tranzrNameProduction
         }
@@ -111,7 +111,7 @@ resource "kubernetes_manifest" "tranzr-letsencrypt-production" {
 
 resource "kubernetes_secret_v1" "azure_secret_sp_secret" {
   metadata {
-    name      = "azure-secret-sp-secret"
+    name = "azure-secret-sp-secret"
   }
 
   data = {
@@ -166,11 +166,11 @@ resource "kubernetes_manifest" "azure_kv_cluster_store" {
             # the azure service principal credentials
             clientId = {
               name = kubernetes_secret_v1.azure_secret_sp_secret.metadata[0].name
-              key = "clientId"
+              key  = "clientId"
             }
             clientSecret = {
               name = kubernetes_secret_v1.azure_secret_sp_secret.metadata[0].name
-              key = "clientSecret"
+              key  = "clientSecret"
             }
           }
         }
@@ -180,24 +180,6 @@ resource "kubernetes_manifest" "azure_kv_cluster_store" {
 
   depends_on = [kubernetes_secret_v1.azure_secret_sp_secret, null_resource.wait_for_external_secrets_operator_crds]
 }
-
-# resource "terraform_data" "gateway_api_crds" {
-#   provisioner "local-exec" {
-#     environment = {
-#       KUBECONFIG = var.kubeconfig_path
-#     }
-#     command = <<EOT
-#       echo "Using kubeconfig: ${var.kubeconfig_path}"
-#       if [ ! -f "${var.kubeconfig_path}" ]; then
-#         echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
-#         exit 1
-#       fi
-#       kubectl apply --server-side \
-#         -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
-#       echo "Gateway API CRDs applied."
-#     EOT
-#   }
-# }
 
 resource "null_resource" "wait_for_gateway_api_crds" {
   # depends_on = [terraform_data.gateway_api_crds]
@@ -235,7 +217,6 @@ resource "helm_release" "nginx_gateway_fabric" {
 
   namespace        = local.nginxGatewayFabricSettings.namespace
   create_namespace = true
-  # values           = [file("${path.module}/values/nginx-gateway-fabric/values.yaml")]
   depends_on       = [null_resource.wait_for_gateway_api_crds]
 }
 

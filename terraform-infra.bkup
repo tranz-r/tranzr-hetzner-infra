@@ -54,15 +54,15 @@ jobs:
           echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
 
       - name: Terraform Init (Azure remote state)
-        working-directory: infra-kube-hetzner
+        working-directory: infra
         run: terraform init -upgrade
 
       - name: Terraform Validate
-        working-directory: infra-kube-hetzner
+        working-directory: infra
         run: terraform validate
 
       - name: Terraform Plan
-        working-directory: infra-kube-hetzner
+        working-directory: infra
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
@@ -70,7 +70,7 @@ jobs:
         run: terraform plan
 
       - name: Terraform Apply
-        working-directory: infra-kube-hetzner
+        working-directory: infra
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
@@ -78,14 +78,18 @@ jobs:
         run: terraform apply -auto-approve
 
       - name: Fetch kubeconfig
-        working-directory: infra-kube-hetzner
-        run: terraform output -raw kubeconfig > kubeconfig
+        working-directory: infra
+        run: |
+          MASTER_IP=$(terraform output -raw master_public_ip)
+          # fetch as root (Hetzner Ubuntu images default to root)
+          scp -o StrictHostKeyChecking=no -i $HOME/.ssh/id_ed25519 root@$MASTER_IP:/etc/rancher/k3s/k3s.yaml ./kubeconfig
+          sed -i "s/127.0.0.1/$MASTER_IP/" kubeconfig
 
       - name: Upload kubeconfig artifact
         uses: actions/upload-artifact@v4
         with:
           name: kubeconfig
-          path: infra-kube-hetzner/kubeconfig
+          path: infra/kubeconfig
 
   kubernetes-addons-deployment:
     needs: hetzner-infra-deployment
@@ -93,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      TF_VAR_kubeconfig_path: "${{ github.workspace }}/crds/kubeconfig"
+      TF_VAR_kubeconfig_path: "${{ github.workspace }}/addons/kubeconfig"
       TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
       TF_VAR_letsencryptEmail: ${{ secrets.LETSENCRYPT_EMAIL }}
       TF_VAR_tranzrCloudflareApiTokenKey: ${{ secrets.TRANZR_CLOUDFLARE_API_TOKEN_KEY }}
@@ -111,16 +115,23 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: kubeconfig
-          path: ./crds
+          path: ./addons
 
       - name: Verify kubeconfig exists
         run: |
-          ls -la ./crds/
-          if [ ! -f ./crds/kubeconfig ]; then
-            echo "Error: kubeconfig file not found at ./crds/kubeconfig"
+          ls -la ./addons/
+          if [ ! -f ./addons/kubeconfig ]; then
+            echo "Error: kubeconfig file not found at ./addons/kubeconfig"
             exit 1
           fi
-          echo "Kubeconfig found at: $(pwd)/crds/kubeconfig"
+          echo "Kubeconfig found at: $(pwd)/addons/kubeconfig"
+
+      # - name: Install kubectl
+      #   run: |
+      #     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      #     chmod +x kubectl
+      #     sudo mv kubectl /usr/local/bin/
+      #     kubectl version --client
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -135,21 +146,31 @@ jobs:
           echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
 
       - name: Terraform Init (Azure remote state)
-        working-directory: crds
+        working-directory: addons
         run: terraform init -upgrade
 
       - name: Terraform Validate
-        working-directory: crds
+        working-directory: addons
         run: terraform validate
 
       - name: Terraform Plan
-        working-directory: crds
+        working-directory: addons
         continue-on-error: true
         run: terraform plan
 
-      - name: Terraform Apply
-        working-directory: crds
-        run: terraform apply -auto-approve
+      - name: Terraform Apply (import Cilium if release already exists, then upgrade)
+        working-directory: addons
+        run: |
+          set -e
+          if ! terraform apply -auto-approve -no-color 2>&1 | tee /tmp/tf-apply.log; then
+            if grep -qi "release already exists\|release: already exists" /tmp/tf-apply.log; then
+              echo "Cilium release already exists; importing into state and retrying (upgrade)..."
+              terraform import helm_release.cilium kube-system/cilium
+              terraform apply -auto-approve
+            else
+              exit 1
+            fi
+          fi
 
   kubernetes-resources-deployment:
     needs: kubernetes-addons-deployment
@@ -185,6 +206,13 @@ jobs:
             exit 1
           fi
           echo "Kubeconfig found at: $(pwd)/resources/kubeconfig"
+
+      # - name: Install kubectl
+      #   run: |
+      #     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      #     chmod +x kubectl
+      #     sudo mv kubectl /usr/local/bin/
+      #     kubectl version --client
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -241,18 +269,16 @@ jobs:
           echo "ARM_TENANT_ID=$(jq -r .tenantId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId <<< '${{ secrets.AZURE_CREDENTIALS }}')" >> $GITHUB_ENV
 
-      - name: Terraform Init (infra-kube-hetzner for kubeconfig)
-        working-directory: infra-kube-hetzner
+      - name: Terraform Init (Azure remote state for kubeconfig)
+        working-directory: infra
         run: terraform init -upgrade
 
-      - name: Fetch kubeconfig
-        working-directory: infra-kube-hetzner
+      - name: Fetch kubeconfig from master
+        working-directory: infra
         run: |
-          terraform output -raw kubeconfig > ../addons/kubeconfig
-          if [ ! -s ../addons/kubeconfig ]; then
-            echo "::error::kubeconfig is missing or empty"
-            exit 1
-          fi
+          MASTER_IP=$(terraform output -raw master_public_ip)
+          scp -o StrictHostKeyChecking=no -i $HOME/.ssh/id_ed25519 root@$MASTER_IP:/etc/rancher/k3s/k3s.yaml ../addons/kubeconfig
+          sed -i "s/127.0.0.1/$MASTER_IP/" ../addons/kubeconfig
 
       - name: Destroy Kubernetes Resources
         working-directory: resources
@@ -287,8 +313,8 @@ jobs:
           terraform init -upgrade
           terraform destroy -auto-approve
 
-      - name: Destroy Hetzner infrastructure (infra-kube-hetzner)
-        working-directory: infra-kube-hetzner
+      - name: Destroy HetznerInfrastructure
+        working-directory: infra
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}

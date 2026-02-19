@@ -1,0 +1,35 @@
+# Startup API check: post-install Job that does a dry-run CertificateRequest to verify the webhook.
+# It often fails (BackoffLimitExceeded) in this setup because:
+#   - In CI, cert-manager is installed right after Cilium/CCM; cluster is "cold".
+#   - The job runs with default --wait=1m and backoffLimit=4. It needs the webhook AND the
+#     cainjector to be ready (cainjector injects the CA into the webhook config so the API
+#     server trusts the webhook TLS). If either isn't ready in time, you get TLS or validation
+#     errors, the job retries, then hits BackoffLimitExceeded → Terraform sees "release failed".
+# Previous installs may have worked because: cluster was already warm, single node (faster),
+# or cert-manager was installed later in the pipeline. To keep the check enabled, uncomment
+# below and set enabled: true, and consider increasing timeout/backoffLimit for CI.
+startupapicheck:
+  enabled: true
+  timeout: 5m # give webhook + cainjector more time on cold clusters
+  backoffLimit: 10 # more retries before giving up
+# config:
+#   enableGatewayAPI: true
+
+# replicaCount: 2
+extraArgs:
+  # - --dns01-recursive-nameservers=1.1.1.1:53,9.9.9.9:53
+  # - --dns01-recursive-nameservers-only
+  - --enable-gateway-api
+# Controller only: startupapicheck job uses cluster default DNS (no dnsPolicy in its template).
+# Include cluster DNS so the controller can resolve in-cluster names if needed (e.g. webhook service).
+# k3s default cluster DNS is 10.43.0.10; verify with: kubectl get svc -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}'
+# podDnsPolicy: None
+# podDnsConfig:
+#   nameservers:
+#     - "10.43.0.10"   # k3s cluster DNS (CoreDNS) — in-cluster names
+#     - "1.1.1.1"
+#     - "9.9.9.9"
+
+webhook:
+  hostNetwork: true
+  securePort: 10260

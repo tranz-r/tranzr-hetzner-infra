@@ -1,0 +1,12 @@
+controller:
+  service:
+    annotations:
+      load-balancer.hetzner.cloud/type: "lb11"
+      load-balancer.hetzner.cloud/name: "tranzr-load-balancer"
+      load-balancer.hetzner.cloud/location: nbg1
+      load-balancer.hetzner.cloud/use-private-ip: "true"
+    type: LoadBalancer
+  config:
+    proxy-read-timeout: "3600"
+    proxy-send-timeout: "3600"
+    proxy-buffering: "off"
