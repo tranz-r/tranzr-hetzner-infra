@@ -48,7 +48,7 @@ module "kube-hetzner" {
 
   cluster_name = "tranzrmoves"
 
-  initial_k3s_channel = "v1.35.1+k3s1"
+  initial_k3s_channel = "latest"
 
   cni_plugin            = "cilium"
   cilium_version        = "1.19.1"
