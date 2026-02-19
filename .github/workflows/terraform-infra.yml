@@ -66,7 +66,7 @@ jobs:
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_ssh_private_key_path: "$HOME/.ssh/id_ed25519"
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
         run: terraform plan
 
       - name: Terraform Apply
@@ -74,7 +74,7 @@ jobs:
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_ssh_private_key_path: "$HOME/.ssh/id_ed25519"
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
         run: terraform apply -auto-approve
 
       - name: Fetch kubeconfig
@@ -292,7 +292,7 @@ jobs:
         env:
           TF_VAR_hcloud_token: ${{ secrets.HETZNER_API_TOKEN }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_ssh_private_key_path: "$HOME/.ssh/id_ed25519"
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           terraform init -upgrade
           terraform destroy -auto-approve
