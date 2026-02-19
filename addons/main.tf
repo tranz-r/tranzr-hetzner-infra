@@ -183,9 +183,8 @@ resource "helm_release" "ingress_nginx" {
   depends_on       = [helm_release.hcloud_ccm]
 }
 
-# Allow API server -> cert-manager webhook so startupapicheck and webhook validation don't time out.
-# Cilium can drop this traffic unless explicitly allowed (kube-apiserver entity).
-# Use provisioner to wait for Cilium CRDs to be available before applying the policy.
+# Wait for Cilium CRDs so we know Cilium is fully installed, then apply the Cilium policy
+# (we both wait for the CRD object and then retry `kubectl apply` until discovery is ready).
 resource "terraform_data" "cilium_allow_apiserver_to_cert_manager_webhook" {
   provisioner "local-exec" {
     environment = {
@@ -212,16 +211,27 @@ resource "terraform_data" "cilium_allow_apiserver_to_cert_manager_webhook" {
         echo "Attempt $i/60: CRD not ready yet, waiting 5 seconds..."
         sleep 5
       done
-      
-      # Apply the Cilium policy manifest
-      kubectl apply -f ${path.module}/manifests/cilium-allow-apiserver-to-cert-manager-webhook.yaml
-      echo "Cilium policy applied successfully."
+
+      # Apply the Cilium policy manifest with retries, to avoid the short discovery race
+      echo "Applying CiliumClusterwideNetworkPolicy manifest..."
+      for i in {1..30}; do
+        if kubectl apply -f "${path.module}/manifests/cilium-allow-apiserver-to-cert-manager-webhook.yaml"; then
+          echo "Cilium policy applied successfully."
+          break
+        fi
+        if [ $i -eq 30 ]; then
+          echo "Failed to apply Cilium policy after 30 attempts."
+          exit 1
+        fi
+        echo "Attempt $i/30: policy apply failed (likely discovery not ready yet), waiting 5 seconds..."
+        sleep 5
+      done
     EOT
   }
 
   depends_on = [helm_release.cilium]
-  
-  # Trigger re-run if the manifest file changes
+
+  # Re-run if the manifest file changes
   input = filemd5("${path.module}/manifests/cilium-allow-apiserver-to-cert-manager-webhook.yaml")
 }
 
