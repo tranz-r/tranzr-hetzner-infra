@@ -56,7 +56,8 @@ variable "cluster_name" {
 
 variable "master_type"  { 
   type = string  
-  default = "cx33" 
+  # default = "cx33" 
+  default = "cpx32" 
   description = "Hetzner Cloud master type"
 }
 
