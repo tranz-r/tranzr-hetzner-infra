@@ -12,8 +12,8 @@ module "kube-hetzner" {
 
   network_region = "eu-central"
 
-  microos_x86_snapshot_id = var.microos_x86_snapshot_id
-  microos_arm_snapshot_id = var.microos_arm_snapshot_id
+  # microos_x86_snapshot_id = var.microos_x86_snapshot_id
+  # microos_arm_snapshot_id = var.microos_arm_snapshot_id
 
   control_plane_nodepools = [
     {
