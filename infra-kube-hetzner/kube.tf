@@ -34,15 +34,15 @@ module "kube-hetzner" {
     }
   ]
 
-  autoscaler_nodepools = [
-    {
-      name        = "autoscaled-agents"
-      server_type = var.agent_type
-      location    = var.location
-      min_nodes   = 1
-      max_nodes   = 3
-    }
-  ]
+  # autoscaler_nodepools = [
+  #   {
+  #     name        = "autoscaled-agents"
+  #     server_type = var.agent_type
+  #     location    = var.location
+  #     min_nodes   = 0
+  #     max_nodes   = 3
+  #   }
+  # ]
 
   system_upgrade_use_drain = true
 
