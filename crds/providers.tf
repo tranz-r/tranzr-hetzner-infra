@@ -6,11 +6,6 @@ terraform {
       version = "~>4.0"
     }
 
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "2.33.0"
-    }
-
     helm = {
       source  = "hashicorp/helm"
       version = "3.1.1"
@@ -19,16 +14,6 @@ terraform {
     kubectl = {
       source  = "gavinbunney/kubectl"
       version = "1.19.0"
-    }
-
-    external = {
-      source  = "hashicorp/external"
-      version = "2.3.4"
-    }
-
-    http = {
-      source  = "hashicorp/http"
-      version = "3.4.5"
     }
   }
 
@@ -49,10 +34,6 @@ provider "azurerm" {
   }
 }
 
-provider "kubernetes" {
-  config_path = var.kubeconfig_path
-}
-
 provider "helm" {
   kubernetes = {
     config_path = var.kubeconfig_path
@@ -62,7 +43,3 @@ provider "helm" {
 provider "kubectl" {
   config_path = var.kubeconfig_path
 }
-
-provider "external" {}
-
-provider "http" {}

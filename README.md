@@ -1,98 +1,213 @@
-# Hetzner k3s Cluster via Terraform + GitHub Actions (Azure Remote State)
+# Hetzner k3s Cluster via Terraform + GitHub Actions
 
-This repo provisions a production-ready k3s cluster on Hetzner Cloud using Terraform from GitHub Actions,
-stores Terraform state in **Azure Storage**, and installs core addons (Hetzner CCM, CSI, ingress-nginx, cert-manager).
+This repository provisions a production-ready k3s cluster on Hetzner Cloud using the [kube-hetzner](https://github.com/kube-hetzner/terraform-hcloud-kube-hetzner) Terraform module, deployed via GitHub Actions with Azure Storage for remote state.
 
-## Structure
+## Architecture
+
+The cluster is provisioned in stages:
+
+1. **infra-kube-hetzner** - Provisions the cluster infrastructure using the kube-hetzner module
+2. **crds** - Installs Gateway API CRDs and core operators
+3. **resources** - Configures cert-manager ClusterIssuers and Azure Key Vault integration
+
+## Repository Structure
 
 ```
 hetzner-k3s/
-├── infra/                 # Terraform for servers/network + k3s via cloud-init
-│   ├── main.tf
+├── infra-kube-hetzner/          # Cluster infrastructure (kube-hetzner module)
+│   ├── kube.tf                  # Main module configuration
+│   ├── variables.tf              # Input variables
+│   ├── providers.tf             # Terraform providers & Azure backend
+│   ├── output.tf                # kubeconfig output
+│   ├── hcloud-microos-snapshots.pkr.hcl  # Packer template for MicroOS images
+│   └── README.md                # Setup instructions for MicroOS images
+├── crds/                        # Gateway API CRDs and operators
+│   ├── main.tf                  # Gateway API CRDs, external-secrets, CloudNativePG
 │   ├── variables.tf
-│   ├── outputs.tf
-│   ├── providers.tf       # azurerm backend + providers
-│   └── cloudinit/
-│       ├── master.yaml.tmpl
-│       └── worker.yaml.tmpl
-├── addons/                # Terraform (Helm) for CCM, CSI, Ingress, cert-manager
-│   ├── main.tf
+│   ├── providers.tf             # Azure backend + Kubernetes providers
+│   └── local.tf                 # Local settings
+├── resources/                   # cert-manager and Azure Key Vault resources
+│   ├── main.tf                  # ClusterIssuers, ClusterSecretStore, Nginx Gateway Fabric
 │   ├── variables.tf
-│   ├── providers.tf       # azurerm backend + providers
-│   └── values/
-│       ├── ingress-nginx-values.yaml
-│       └── cert-manager-values.yaml
+│   ├── providers.tf             # Azure backend + Kubernetes providers
+│   └── local.tf                 # Local settings
 └── .github/workflows/
-    ├── terraform-infra.yml
-    └── terraform-addons.yml
+    └── terraform-infra.yml      # CI/CD pipeline
 ```
 
-## GitHub Secrets & Variables
+## Cluster Configuration
+
+### Infrastructure (infra-kube-hetzner)
+
+- **CNI**: Cilium (native routing, kube-proxy replacement enabled)
+- **Control Plane**: 1 node (non-HA)
+- **Agent Nodes**: 1 node (fixed)
+- **Autoscaler**: 1-3 nodes (dynamic scaling)
+- **Ingress**: Nginx Ingress Controller
+- **Storage**: Hetzner CSI (hcloud-volumes StorageClass)
+- **Cloud Controller**: Hetzner CCM (via Helm)
+- **cert-manager**: Enabled with Gateway API support
+- **OS**: OpenSUSE MicroOS (immutable, auto-updates enabled)
+- **k3s**: Latest channel, auto-upgrades enabled
+
+### Components Installed
+
+**By kube-hetzner module:**
+- k3s (latest)
+- Cilium CNI (v1.19.1)
+- Hetzner CCM (v1.28.0)
+- Hetzner CSI (v2.18.0)
+- cert-manager (v1.19.3)
+- Nginx Ingress Controller
+- Metrics Server
+- Kured (automatic reboots)
+
+**By crds/ Terraform:**
+- Gateway API CRDs (v1.4.1)
+- external-secrets-operator (v2.0.0)
+- CloudNativePG operator (v0.27.0)
+
+**By resources/ Terraform:**
+- cert-manager ClusterIssuers (Let's Encrypt staging & production)
+- Azure Key Vault ClusterSecretStore (for external-secrets)
+- Nginx Gateway Fabric (v2.3.0)
+
+## Prerequisites
+
+### 1. MicroOS Images
+
+Before the first Terraform apply, you must create MicroOS snapshots in your Hetzner project:
+
+```bash
+cd infra-kube-hetzner
+packer build -var "hcloud_token=$HCLOUD_TOKEN" hcloud-microos-snapshots.pkr.hcl
+```
+
+After building, get the image IDs:
+```bash
+hcloud image list --selector microos-snapshot=yes
+```
+
+Then set them as GitHub Variables (or Terraform variables):
+- `TF_VAR_microos_x86_snapshot_id=<x86-image-id>`
+- `TF_VAR_microos_arm_snapshot_id=<arm-image-id>` (only if using ARM node types)
+
+See `infra-kube-hetzner/README.md` for details.
+
+### 2. GitHub Secrets & Variables
 
 Create these in **Settings → Secrets and variables → Actions**:
 
-**Secrets**
+**Secrets:**
+- `HETZNER_API_TOKEN` - Hetzner Cloud API token (Read & Write)
+- `SSH_PUBLIC_KEY` - Contents of your SSH public key (`~/.ssh/id_ed25519.pub`)
+- `SSH_PRIVATE_KEY` - Contents of your SSH private key (`~/.ssh/id_ed25519`)
+- `AZURE_CREDENTIALS` - JSON with `clientId`, `clientSecret`, `tenantId`, `subscriptionId`
+- `LETSENCRYPT_EMAIL` - Email for Let's Encrypt ACME registration
+- `TRANZR_CLOUDFLARE_API_TOKEN_KEY` - Cloudflare API token for DNS-01 challenges
+- `AZURE_SERVICE_PRINCIPAL_CLIENT_ID` - Azure SP client ID for Key Vault access
+- `AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET` - Azure SP client secret
 
-- `HETZNER_API_TOKEN` – Hetzner Cloud API token
-- `SSH_PUBLIC_KEY` – contents of your `~/.ssh/id_ed25519.pub`
-- `SSH_PRIVATE_KEY` – contents of your `~/.ssh/id_ed25519`
-- `AZURE_STORAGE_KEY` – access key for the Azure Storage Account used by the Terraform backend
-- `LETSENCRYPT_EMAIL` – email for Let's Encrypt ACME
+**Variables (Repository or Environment `production`):**
+- `TRANZR_DNS_ZONE` - DNS zone for cert-manager DNS-01 challenges (e.g., `example.com`)
+- `AZURE_SERVICE_PRINCIPAL_TENANT_ID` - Azure tenant ID
+- `AZURE_SUBSCRIPTION_ID` - Azure subscription ID
+- `AZURE_KEY_VAULT_URL` - Azure Key Vault URL (e.g., `https://vault.vault.azure.net/`)
 
-**Variables (Repository or Environment `production`)**
-
-- `AZURE_RG_NAME` – resource group of your Storage Account
-- `AZURE_STORAGE_ACCOUNT` – name of Storage Account
-- `AZURE_STORAGE_CONTAINER` – name of container for TF state (e.g., `tfstate`)
-- `AZURE_STATE_KEY_INFRA` – blob key for infra state (e.g., `hetzner/infra.tfstate`)
-- `AZURE_STATE_KEY_ADDONS` – blob key for addons state (e.g., `hetzner/addons.tfstate`)
-
-> The workflows request an OIDC token (`id-token: write`) and use **Environment=production**.
-> While Hetzner doesn’t yet support native OIDC federation, scoping secrets to an Environment gives you strong controls and is future-proof.
+**Azure Storage Backend** (configured in `providers.tf`):
+- Resource Group: `tranzr-move-rg`
+- Storage Account: `tranzrmovessa`
+- Container: `tranzr-infra-tfstate`
+- State keys: `infra-kube-hetzner.tfstate`, `crds.tfstate`, `resources.tfstate`
 
 ## Usage
 
-1. Commit this project to GitHub.
-2. Set all the secrets and variables above.
-3. Run **Actions → Provision Hetzner Cluster Infra**.
-   - This creates network + VMs and installs k3s via cloud-init.
-   - It uploads a `kubeconfig` artifact.
-4. Run **Actions → Deploy Kubernetes Addons** (or wait for the workflow_run trigger).
-   - This installs Hetzner CCM + CSI + ingress-nginx + cert-manager.
-5. Point your DNS (`A` records) at the `EXTERNAL-IP` shown on the `ingress-nginx-controller` Service.
+### Deploy Cluster
+
+1. **Build MicroOS images** (one-time setup):
+   ```bash
+   cd infra-kube-hetzner
+   packer build -var "hcloud_token=$HCLOUD_TOKEN" hcloud-microos-snapshots.pkr.hcl
+   ```
+
+2. **Set image IDs** as GitHub Variables (see Prerequisites).
+
+3. **Trigger workflow**:
+   - Push to `main` branch, or
+   - Go to **Actions → Provision Hetzner Cluster Infra → Run workflow**
+
+The workflow runs three jobs sequentially:
+- `hetzner-infra-deployment` - Creates cluster infrastructure
+- `kubernetes-addons-deployment` (crds) - Installs Gateway API CRDs and operators
+- `kubernetes-resources-deployment` (resources) - Configures cert-manager and Azure integration
+
+### Access Cluster
+
+After deployment, download the kubeconfig artifact from the workflow run, or:
+
+```bash
+cd infra-kube-hetzner
+terraform output -raw kubeconfig > kubeconfig.yaml
+export KUBECONFIG=$(pwd)/kubeconfig.yaml
+kubectl get nodes
+```
+
+### Destroy Cluster
+
+Use the workflow with `destroy: true` input, or run locally:
+
+```bash
+cd resources && terraform destroy -auto-approve
+cd ../crds && terraform destroy -auto-approve
+cd ../infra-kube-hetzner && terraform destroy -auto-approve
+```
+
+## Key Features
+
+- **Cilium CNI** with native routing and kube-proxy replacement
+- **Automatic scaling** via Cluster Autoscaler (1-3 agent nodes)
+- **cert-manager** with Let's Encrypt (staging & production ClusterIssuers)
+- **Gateway API** support (CRDs + Nginx Gateway Fabric)
+- **External Secrets** integration with Azure Key Vault
+- **CloudNativePG** operator for PostgreSQL management
+- **Automatic OS & k3s upgrades** via kured and system-upgrade-controller
+- **Immutable OS** (MicroOS) with automatic rollback on failed updates
+
+## Network Architecture
+
+- **Private Network**: Created automatically by kube-hetzner (`10.0.0.0/8`)
+- **Pod CIDR**: `10.42.0.0/16` (Cilium)
+- **Service CIDR**: `10.43.0.0/16`
+- **Load Balancer**: Hetzner LB for ingress (managed by CCM)
+
+## Storage
+
+- **Default StorageClass**: `hcloud-volumes` (Hetzner Cloud Volumes)
+- **CSI Driver**: Hetzner CSI (v2.18.0) - installed by kube-hetzner module
+
+## DNS & Certificates
+
+- **DNS Servers**: `1.1.1.1`, `8.8.8.8`, `2606:4700:4700::1111`
+- **cert-manager**: Let's Encrypt via DNS-01 (Cloudflare)
+- **ClusterIssuers**: `tranzr-letsencrypt-staging` and `tranzr-letsencrypt-production`
 
 ## Notes
 
-- Default image: Ubuntu 24.04 (root login with SSH key).
-- Traefik is disabled in k3s; ingress is via `ingress-nginx` Helm chart.
-- StorageClass `hcloud-volumes` is set as **default**.
-- Increase worker count via `TF_VAR_workers` or variables in code.
-- For CloudNativePG and Redis, simply request PVCs; they’ll land on Hetzner Volumes.
+- Control plane nodes **do not** allow pod scheduling by default (`allow_scheduling_on_control_plane = false`)
+- Traefik is disabled; ingress is handled by Nginx Ingress Controller
+- Gateway API CRDs are installed in `crds/` before operators that depend on them
+- cert-manager is installed by the kube-hetzner module; ClusterIssuers are configured in `resources/`
 
-## Clean up
+## Troubleshooting
 
-- `terraform destroy` from both `addons/` and `infra/` workflows (add a `destroy` job or run locally).
+### "no image found matching the selection"
 
-## Initial Hetzner Cloud config
+Build MicroOS images with Packer first (see Prerequisites).
 
-```
+### SSH key errors
 
-#cloud-config
-package_update: true
-packages: [curl]
-runcmd:
-  - curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL='${k3s_channel}' K3S_TOKEN='${k3s_token}' INSTALL_K3S_EXEC="server \
-    --disable=traefik \
-    --disable=servicelb \
-    --disable=local-storage \
-    --disable-cloud-controller \
-    --kubelet-arg cloud-provider=external \
-    --disable-kube-proxy \
-    --flannel-backend=none \
-    --disable-network-policy \
-    --write-kubeconfig-mode 0644 \
-    --cluster-cidr 10.42.0.0/16 \
-    --service-cidr 10.43.0.0/16 \
-    --node-name ${node_name}" sh -s -
-  - systemctl enable k3s && systemctl restart k3s
-```
+Ensure `SSH_PRIVATE_KEY` secret contains the full key content (not a path). The workflow uses `TF_VAR_ssh_private_key` to avoid `file()` path issues.
+
+### Gateway API CRDs not found
+
+The `crds/` job installs Gateway API CRDs. Ensure it completes successfully before deploying resources that depend on them.
