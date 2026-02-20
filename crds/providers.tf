@@ -20,6 +20,16 @@ terraform {
       source  = "gavinbunney/kubectl"
       version = "1.19.0"
     }
+
+    external = {
+      source  = "hashicorp/external"
+      version = "2.3.4"
+    }
+
+    http = {
+      source  = "hashicorp/http"
+      version = "3.4.5"
+    }
   }
 
   backend "azurerm" {
@@ -52,3 +62,7 @@ provider "helm" {
 provider "kubectl" {
   config_path = var.kubeconfig_path
 }
+
+provider "external" {}
+
+provider "http" {}
