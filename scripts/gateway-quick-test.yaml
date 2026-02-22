@@ -1,0 +1,86 @@
+# Gateway API quick test
+#
+# 1. Get GatewayClass name: kubectl get gatewayclass
+# 2. If it's not "nginx", replace gatewayClassName in the Gateway below.
+# 3. Apply: kubectl apply -f gateway-quick-test.yaml
+# 4. Wait for Gateway address: kubectl get gateway -n gateway-quick-test -w
+# 5. Curl: curl -H "Host: gateway-quick-test.example.com" http://<GATEWAY_ADDRESS>/
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-quick-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo
+  namespace: gateway-quick-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo
+  template:
+    metadata:
+      labels:
+        app: echo
+    spec:
+      containers:
+        - name: echo
+          image: hashicorp/http-echo
+          args:
+            - "-text=gateway-api-ok"
+            - "-listen=:5678"
+          ports:
+            - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo
+  namespace: gateway-quick-test
+spec:
+  selector:
+    app: echo
+  ports:
+    - port: 80
+      targetPort: 5678
+      protocol: TCP
+  type: ClusterIP
+---
+# Replace gatewayClassName if your GatewayClass has a different name (kubectl get gatewayclass)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: quick-test-gateway
+  namespace: gateway-quick-test
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: echo-route
+  namespace: gateway-quick-test
+spec:
+  parentRefs:
+    - name: quick-test-gateway
+      namespace: gateway-quick-test
+  hostnames:
+    - "gateway-quick-test.example.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: echo
+          port: 80
