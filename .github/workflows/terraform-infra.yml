@@ -77,9 +77,16 @@ jobs:
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
         run: terraform apply -auto-approve
 
-      - name: Fetch kubeconfig
+      - name: Fetch kubeconfig and also add to organization secret
         working-directory: infra-kube-hetzner
-        run: terraform output -raw kubeconfig > kubeconfig
+        run: |
+          terraform output -raw kubeconfig > kubeconfig
+          echo "${{ secrets.ORG_ADMIN_TOKEN }}" | gh auth login --with-token
+          gh secret set KUBE_CONFIG_PROD \
+            --org "${{ github.repository_owner }}" \
+            --visibility selected \
+            --repos tranzr-gitops \
+            --body "$(cat kubeconfig)"
 
       - name: Upload kubeconfig artifact
         uses: actions/upload-artifact@v4
