@@ -150,6 +150,7 @@ resource "null_resource" "wait_for_external_secrets_operator_crds" {
 }
 
 resource "kubernetes_manifest" "azure_kv_cluster_store" {
+
   manifest = {
     apiVersion = "external-secrets.io/v1"
     kind       = "ClusterSecretStore"
@@ -165,12 +166,12 @@ resource "kubernetes_manifest" "azure_kv_cluster_store" {
             # points to the secret that contains
             # the azure service principal credentials
             clientId = {
-              name      = kubernetes_secret_v1.azure_secret_sp_secret.metadata[0].name
+              name      = "azure-secret-sp-secret"
               key       = "clientId"
               namespace = "default"
             }
             clientSecret = {
-              name      = kubernetes_secret_v1.azure_secret_sp_secret.metadata[0].name
+              name      = "azure-secret-sp-secret"
               key       = "clientSecret"
               namespace = "default"
             }
