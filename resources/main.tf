@@ -165,12 +165,14 @@ resource "kubernetes_manifest" "azure_kv_cluster_store" {
             # points to the secret that contains
             # the azure service principal credentials
             clientId = {
-              name = kubernetes_secret_v1.azure_secret_sp_secret.metadata[0].name
-              key  = "clientId"
+              name      = kubernetes_secret_v1.azure_secret_sp_secret.metadata[0].name
+              key       = "clientId"
+              namespace = "default"
             }
             clientSecret = {
-              name = kubernetes_secret_v1.azure_secret_sp_secret.metadata[0].name
-              key  = "clientSecret"
+              name      = kubernetes_secret_v1.azure_secret_sp_secret.metadata[0].name
+              key       = "clientSecret"
+              namespace = "default"
             }
           }
         }
