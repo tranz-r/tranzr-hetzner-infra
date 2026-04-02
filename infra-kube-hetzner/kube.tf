@@ -28,6 +28,14 @@ module "kube-hetzner" {
       port            = "6543"
       source_ips      = []
       destination_ips = ["0.0.0.0/0", "::/0"]
+    },
+    {
+      description     = "Allow outbound SMTP for Azure Communication Services"
+      direction       = "out"
+      protocol        = "tcp"
+      port            = "587"
+      source_ips      = []
+      destination_ips = ["0.0.0.0/0", "::/0"]
     }
   ]
 
