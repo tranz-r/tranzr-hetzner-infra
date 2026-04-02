@@ -12,6 +12,23 @@ module "kube-hetzner" {
 
   network_region = "eu-central"
 
+  extra_firewall_rules = [
+    {
+      direction       = "out"
+      protocol        = "tcp"
+      port            = "5432"
+      source_ips      = []
+      destination_ips = ["0.0.0.0/0", "::/0"]
+    },
+    {
+      direction       = "out"
+      protocol        = "tcp"
+      port            = "6543"
+      source_ips      = []
+      destination_ips = ["0.0.0.0/0", "::/0"]
+    }
+  ]
+
   control_plane_nodepools = [
     {
       name        = "control-plane-nbg1"
