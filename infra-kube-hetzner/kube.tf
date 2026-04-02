@@ -14,6 +14,7 @@ module "kube-hetzner" {
 
   extra_firewall_rules = [
     {
+      description     = "Allow outbound PostgreSQL"
       direction       = "out"
       protocol        = "tcp"
       port            = "5432"
@@ -21,6 +22,7 @@ module "kube-hetzner" {
       destination_ips = ["0.0.0.0/0", "::/0"]
     },
     {
+      description     = "Allow outbound PgBouncer"
       direction       = "out"
       protocol        = "tcp"
       port            = "6543"
