@@ -181,6 +181,10 @@ resource "kubernetes_manifest" "azure_kv_cluster_store" {
     }
   }
 
+  field_manager {
+    force_conflicts = true
+  }
+
   depends_on = [kubernetes_secret_v1.azure_secret_sp_secret, null_resource.wait_for_external_secrets_operator_crds]
 }
 
