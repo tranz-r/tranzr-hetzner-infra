@@ -107,8 +107,8 @@ jobs:
       TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
       TF_VAR_azureServicePrincipalClientId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_ID }}
       TF_VAR_azureServicePrincipalClientSecret: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET }}
-      TF_VAR_azureServicePrincipalTenantId: ${{ vars.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
-      TF_VAR_azureSubscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_azureServicePrincipalTenantId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
+      TF_VAR_azureSubscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       TF_VAR_azureKeyVaultUrl: ${{ vars.AZURE_KEY_VAULT_URL }}
 
     steps:
@@ -171,8 +171,8 @@ jobs:
       TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
       TF_VAR_azureServicePrincipalClientId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_ID }}
       TF_VAR_azureServicePrincipalClientSecret: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET }}
-      TF_VAR_azureServicePrincipalTenantId: ${{ vars.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
-      TF_VAR_azureSubscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_azureServicePrincipalTenantId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
+      TF_VAR_azureSubscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       TF_VAR_azureKeyVaultUrl: ${{ vars.AZURE_KEY_VAULT_URL }}
 
     steps:
@@ -270,8 +270,8 @@ jobs:
           TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
           TF_VAR_azureServicePrincipalClientId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_ID }}
           TF_VAR_azureServicePrincipalClientSecret: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET }}
-          TF_VAR_azureServicePrincipalTenantId: ${{ vars.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
-          TF_VAR_azureSubscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azureServicePrincipalTenantId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
+          TF_VAR_azureSubscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           TF_VAR_azureKeyVaultUrl: ${{ vars.AZURE_KEY_VAULT_URL }}
         run: |
           terraform init -upgrade
@@ -287,8 +287,8 @@ jobs:
           TF_VAR_tranzrDnsZones: ${{ vars.TRANZR_DNS_ZONE }}
           TF_VAR_azureServicePrincipalClientId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_ID }}
           TF_VAR_azureServicePrincipalClientSecret: ${{ secrets.AZURE_SERVICE_PRINCIPAL_CLIENT_SECRET }}
-          TF_VAR_azureServicePrincipalTenantId: ${{ vars.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
-          TF_VAR_azureSubscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azureServicePrincipalTenantId: ${{ secrets.AZURE_SERVICE_PRINCIPAL_TENANT_ID }}
+          TF_VAR_azureSubscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           TF_VAR_azureKeyVaultUrl: ${{ vars.AZURE_KEY_VAULT_URL }}
         run: |
           terraform init -upgrade
