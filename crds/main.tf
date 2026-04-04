@@ -1,6 +1,7 @@
 resource "terraform_data" "gateway_api_crds" {
   triggers_replace = [var.gateway_api_version]
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
 
     environment = {
       KUBECONFIG = var.kubeconfig_path
