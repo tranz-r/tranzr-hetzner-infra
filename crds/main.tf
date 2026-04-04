@@ -26,10 +26,11 @@ resource "terraform_data" "upgrade_nginx_gateway_api_crds" {
     }
 
     command = <<-EOT
-      set -euo pipefail
-      test -f "$KUBECONFIG"
-      kubectl kustomize "https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v${var.nginx_gateway_api_version}/deploy/crds.yaml" | kubectl apply --server-side -f -
-    EOT
+    set -euo pipefail
+    test -f "$KUBECONFIG"
+    kubectl apply --server-side -f \
+      "https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v${var.nginx_gateway_api_version}/deploy/crds.yaml"
+  EOT
   }
 
   depends_on = [terraform_data.nginx_gateway_api_crds]
