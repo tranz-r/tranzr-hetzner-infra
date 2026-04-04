@@ -10,7 +10,7 @@ resource "terraform_data" "gateway_api_crds" {
         exit 1
       fi
       kubectl apply --server-side \
-        -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+        -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.0/standard-install.yaml
       echo "Gateway API CRDs applied."
     EOT
   }

@@ -10,21 +10,21 @@ locals {
   clusterIssuerSettings = {
     nameStaging          = "letsencrypt-staging"
     nameProduction       = "letsencrypt-production"
-    tranzrNameStaging          = "tranzr-letsencrypt-staging"
-    tranzrNameProduction       = "tranzr-letsencrypt-production"
+    tranzrNameStaging    = "tranzr-letsencrypt-staging"
+    tranzrNameProduction = "tranzr-letsencrypt-production"
     stagingServer        = "https://acme-staging-v02.api.letsencrypt.org/directory"
     productionServer     = "https://acme-v02.api.letsencrypt.org/directory"
-    namespace     = "cert-manager"
-    apiVersion    = "cert-manager.io/v1"
-    kind          = "ClusterIssuer"
-    issuerRef     = "letsencrypt"
-    email = var.letsencryptEmail
+    namespace            = "cert-manager"
+    apiVersion           = "cert-manager.io/v1"
+    kind                 = "ClusterIssuer"
+    issuerRef            = "letsencrypt"
+    email                = var.letsencryptEmail
   }
 
   nginxGatewayFabricSettings = {
     name          = "ngf"
     namespace     = "nginx-gateway"
-    chart_version = "2.3.0"
+    chart_version = "2.5.0"
     repository    = "oci://ghcr.io/nginx/charts"
     chart         = "nginx-gateway-fabric"
   }
