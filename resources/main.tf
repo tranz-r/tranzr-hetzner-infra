@@ -221,8 +221,10 @@ resource "helm_release" "nginx_gateway_fabric" {
   repository = local.nginxGatewayFabricSettings.repository
   chart      = local.nginxGatewayFabricSettings.chart
   version    = local.nginxGatewayFabricSettings.chart_version
+  namespace  = local.nginxGatewayFabricSettings.namespace
 
-  namespace        = local.nginxGatewayFabricSettings.namespace
+  timeout = 1200
+
   create_namespace = true
   depends_on       = [null_resource.wait_for_gateway_api_crds]
 }
