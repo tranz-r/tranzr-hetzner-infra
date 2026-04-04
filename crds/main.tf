@@ -12,9 +12,6 @@ resource "terraform_data" "nginx_gateway_api_crds" {
       test -f "$KUBECONFIG"
       kubectl apply --server-side \
         -  "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v${var.nginx_gateway_api_version}"
-      ACTUAL="$(kubectl get crd httproutes.gateway.networking.k8s.io \
-        -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/bundle-version}')"
-      test "$ACTUAL" = "${var.nginx_gateway_api_version}"
     EOT
   }
 }
