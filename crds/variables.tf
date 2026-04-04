@@ -7,5 +7,5 @@ variable "kubeconfig_path" {
 variable "gateway_api_version" {
   description = "Gateway API standard bundle tag (must match release URL and CRD bundle-version annotation)"
   type        = string
-  default     = "v1.5.0"
+  default     = "v1.5.1"
 }
