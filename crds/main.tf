@@ -28,7 +28,7 @@ resource "terraform_data" "upgrade_nginx_gateway_api_crds" {
     command = <<-EOT
       set -euo pipefail
       test -f "$KUBECONFIG"
-      kubectl kustomize "https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/${var.nginx_gateway_api_version}/deploy/crds.yaml" | kubectl apply --server-side -f -
+      kubectl kustomize "https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v${var.nginx_gateway_api_version}/deploy/crds.yaml" | kubectl apply --server-side -f -
     EOT
   }
 
