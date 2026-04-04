@@ -1,5 +1,5 @@
-resource "terraform_data" "gateway_api_crds" {
-  triggers_replace = [var.gateway_api_version]
+resource "terraform_data" "nginx_gateway_api_crds" {
+  triggers_replace = [var.nginx_gateway_api_version]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
 
@@ -11,10 +11,10 @@ resource "terraform_data" "gateway_api_crds" {
       set -euo pipefail
       test -f "$KUBECONFIG"
       kubectl apply --server-side \
-        -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${var.gateway_api_version}/standard-install.yaml"
+        -  "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v${var.nginx_gateway_api_version}"
       ACTUAL="$(kubectl get crd httproutes.gateway.networking.k8s.io \
         -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/bundle-version}')"
-      test "$ACTUAL" = "${var.gateway_api_version}"
+      test "$ACTUAL" = "${var.nginx_gateway_api_version}"
     EOT
   }
 }

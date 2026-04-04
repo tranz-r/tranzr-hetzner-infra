@@ -4,8 +4,8 @@ variable "kubeconfig_path" {
   description = "Path to kubeconfig file"
 }
 
-variable "gateway_api_version" {
-  description = "Gateway API standard bundle tag (must match release URL and CRD bundle-version annotation)"
+variable "nginx_gateway_api_version" {
+  description = "Nginx Gateway API standard bundle tag (must match release URL and CRD bundle-version annotation)"
   type        = string
-  default     = "v1.5.1"
+  default     = "2.5.0"
 }
