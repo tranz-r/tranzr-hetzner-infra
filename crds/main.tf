@@ -1,17 +1,17 @@
 resource "terraform_data" "gateway_api_crds" {
+  input = var.gateway_api_version
   provisioner "local-exec" {
     environment = {
       KUBECONFIG = var.kubeconfig_path
     }
-    command = <<EOT
-      echo "Using kubeconfig: ${var.kubeconfig_path}"
-      if [ ! -f "${var.kubeconfig_path}" ]; then
-        echo "Error: kubeconfig file not found at ${var.kubeconfig_path}"
-        exit 1
-      fi
+    command = <<-EOT
+      set -euo pipefail
+      test -f "$KUBECONFIG"
       kubectl apply --server-side \
-        -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.0/standard-install.yaml
-      echo "Gateway API CRDs applied."
+        -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${var.gateway_api_version}/standard-install.yaml"
+      ACTUAL="$(kubectl get crd httproutes.gateway.networking.k8s.io \
+        -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/bundle-version}')"
+      test "$ACTUAL" = "${var.gateway_api_version}"
     EOT
   }
 }
