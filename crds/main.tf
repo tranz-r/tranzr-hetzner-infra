@@ -10,8 +10,7 @@ resource "terraform_data" "nginx_gateway_api_crds" {
     command = <<-EOT
       set -euo pipefail
       test -f "$KUBECONFIG"
-      kubectl apply --server-side \
-        -  "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v${var.nginx_gateway_api_version}"
+      kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v${var.nginx_gateway_api_version}" | kubectl apply --server-side -f -
     EOT
   }
 }
