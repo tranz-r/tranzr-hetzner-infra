@@ -1,9 +1,11 @@
 resource "terraform_data" "gateway_api_crds" {
-  input = var.gateway_api_version
+  triggers_replace = [var.gateway_api_version]
   provisioner "local-exec" {
+
     environment = {
       KUBECONFIG = var.kubeconfig_path
     }
+
     command = <<-EOT
       set -euo pipefail
       test -f "$KUBECONFIG"
