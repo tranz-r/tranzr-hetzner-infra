@@ -83,6 +83,8 @@ module "kube-hetzner" {
   cilium_hubble_enabled = true
   disable_kube_proxy    = true
 
+  ingress_controller = "none"
+
   hetzner_ccm_use_helm = true
   hetzner_ccm_version  = "1.28.0"
 
