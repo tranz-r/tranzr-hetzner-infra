@@ -86,7 +86,7 @@ module "kube-hetzner" {
   ingress_controller = "none"
 
   hetzner_ccm_use_helm = true
-  hetzner_ccm_version  = "1.28.0"
+  hetzner_ccm_version  = "1.31.0"
 
   hetzner_csi_version = "2.18.0"
 
