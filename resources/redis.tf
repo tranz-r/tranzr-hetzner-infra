@@ -49,6 +49,13 @@ resource "helm_release" "redis" {
   values = [
     yamlencode({
       architecture = "standalone"
+      config = {
+        content = <<-EOT
+          # Redis configuration
+          bind * -::*
+          notify-keyspace-events Ex
+        EOT
+      }
       auth = {
         enabled                   = true
         existingSecret            = "redis-credentials"
