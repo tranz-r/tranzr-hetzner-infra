@@ -4,15 +4,15 @@ terraform {
 
     hcloud = {
       source  = "hetznercloud/hcloud"
-      version = "1.60.0"
+      version = ">= 1.66.0"
     }
 
-    template = { 
+    template = {
       source  = "hashicorp/template"
       version = "~> 2.2"
     }
 
-    random   = { 
+    random = {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
