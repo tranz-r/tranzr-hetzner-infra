@@ -75,18 +75,17 @@ module "kube-hetzner" {
 
   cluster_name = "tranzrmoves"
 
-  initial_k3s_channel = "latest"
+  k3s_channel = "latest"
 
   cni_plugin            = "cilium"
   cilium_version        = "1.19.1"
   cilium_routing_mode   = "native"
   cilium_hubble_enabled = true
-  disable_kube_proxy    = true
+  enable_kube_proxy     = false
 
   ingress_controller = "none"
 
-  hetzner_ccm_use_helm = true
-  hetzner_ccm_version  = "1.31.0"
+  hetzner_ccm_version = "1.31.0"
 
   hetzner_csi_version = "2.18.0"
 
@@ -101,8 +100,8 @@ extraArgs:
   - --enable-gateway-api
   EOT 
 
-  automatically_upgrade_k3s = true
-  automatically_upgrade_os  = true
+  automatically_upgrade_kubernetes = true
+  automatically_upgrade_os         = true
 
   dns_servers = [
     "1.1.1.1",
