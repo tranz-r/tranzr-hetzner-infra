@@ -28,6 +28,11 @@ hetzner-k3s/
 │   └── local.tf                 # Local settings
 ├── resources/                   # cert-manager and Azure Key Vault resources
 │   ├── main.tf                  # ClusterIssuers, ClusterSecretStore, Nginx Gateway Fabric
+│   ├── redis.tf                 # Platform Redis
+│   ├── rabbitmq.tf              # Platform RabbitMQ
+│   ├── monitoring.tf              # LGTM+P namespace, Grafana secret, Alloy ConfigMap
+│   ├── monitoring-gateway-routes.tf # HTTPRoute → tranzr-gateway (no Ingress on Hetzner)
+│   ├── monitoring-*.tf            # helm_release: KPS, Grafana, Loki, Tempo, Alloy
 │   ├── variables.tf
 │   ├── providers.tf             # Azure backend + Kubernetes providers
 │   └── local.tf                 # Local settings
@@ -71,6 +76,20 @@ hetzner-k3s/
 - cert-manager ClusterIssuers (Let's Encrypt staging & production)
 - Azure Key Vault ClusterSecretStore (for external-secrets)
 - Nginx Gateway Fabric (v2.3.0)
+- Platform Redis (`redis-system`) and RabbitMQ (`rabbitmq-system`)
+- **LGTM+P monitoring** (`monitoring-system`): remote `helm_release` charts (KPS, Grafana, Loki, Tempo, Alloy) with `yamlencode` values like Redis/RabbitMQ; **app-focused** (no kubelet/kube-state-metrics/node-exporter; OTLP + opt-in `prometheus-scrape: "true"` ServiceMonitors); external URLs via **Gateway API** `HTTPRoute` → shared `tranzr-gateway` in `tranzr-moves` (no Ingress); Alloy OTLP at `monitoring-alloy.monitoring-system:4317`
+
+**AKV prerequisites for monitoring:** `tranzr-grafana-admin-user`, `tranzr-grafana-admin-password`
+
+**Hetzner production URLs** (Gateway API via `tranzr-gateway`, TLS from wildcard `*.tranzr.co.uk` cert):
+
+- Grafana: https://grafana.tranzr.co.uk
+- Prometheus: https://prometheus.tranzr.co.uk
+- Alertmanager: https://alertmanager.tranzr.co.uk
+
+Requires `tranzr-gateway` in `tranzr-moves` (deployed by tranzr-gitops `gatewayApi.enabled`).
+
+**In-cluster OTLP endpoint for Tranzr apps:** `http://monitoring-alloy.monitoring-system.svc.cluster.local:4317`
 
 ## Prerequisites
 
