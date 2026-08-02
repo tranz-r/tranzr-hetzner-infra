@@ -77,7 +77,7 @@ hetzner-k3s/
 - Azure Key Vault ClusterSecretStore (for external-secrets)
 - Nginx Gateway Fabric (v2.3.0)
 - Platform Redis (`redis-system`) and RabbitMQ (`rabbitmq-system`)
-- **LGTM+P monitoring** (`monitoring-system`): remote `helm_release` charts (KPS, Grafana, Loki, Tempo, Alloy) with `yamlencode` values like Redis/RabbitMQ; **app-focused** (no kubelet/kube-state-metrics/node-exporter; OTLP + opt-in `prometheus-scrape: "true"` ServiceMonitors); external URLs via **Gateway API** `HTTPRoute` → shared `tranzr-gateway` in `tranzr-moves` (no Ingress); Alloy OTLP at `monitoring-alloy.monitoring-system:4317`
+- **LGTM+P monitoring** (`monitoring-system`): remote `helm_release` charts (KPS, Grafana, Loki, Tempo, Alloy) with `yamlencode` values like Redis/RabbitMQ; **app-focused** (no kubelet/kube-state-metrics/node-exporter; OTLP + opt-in `prometheus-scrape: "true"` ServiceMonitors); external URLs via **Gateway API** `HTTPRoute` → shared `tranzr-gateway` in `tranzr-moves` (no Ingress); Alloy OTLP at `monitoring-alloy.monitoring-system:4317`; public Faro ingest at `https://faro.tranzzer.com` (port `12347`)
 
 **AKV prerequisites for monitoring:** `tranzr-grafana-admin-user`, `tranzr-grafana-admin-password`
 
@@ -90,6 +90,8 @@ hetzner-k3s/
 Requires `tranzr-gateway` in `tranzr-moves` (deployed by tranzr-gitops `gatewayApi.enabled`).
 
 **In-cluster OTLP endpoint for Tranzr apps:** `http://monitoring-alloy.monitoring-system.svc.cluster.local:4317`
+
+**Public Faro (Drivers PWA / browser RUM):** `https://faro.tranzzer.com` → Alloy `faro.receiver` on Service port `12347`. Create Cloudflare DNS `faro.tranzzer.com` (A/CNAME) to the same LB as `grafana.tranzzer.com` if not covered by an existing wildcard.
 
 ## Prerequisites
 

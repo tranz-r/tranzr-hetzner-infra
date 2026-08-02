@@ -48,5 +48,10 @@ locals {
       serviceName = "kps-monitoring-alertmanager"
       servicePort = 9093
     }
+    faro = {
+      hostname    = "faro.tranzzer.com"
+      serviceName = "monitoring-alloy"
+      servicePort = 12347
+    }
   }
 }

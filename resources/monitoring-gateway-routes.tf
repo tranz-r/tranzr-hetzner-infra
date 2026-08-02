@@ -45,6 +45,7 @@ resource "kubernetes_manifest" "monitoring_https_route" {
     helm_release.nginx_gateway_fabric,
     helm_release.monitoring_grafana,
     helm_release.kps_monitoring,
+    helm_release.monitoring_alloy,
   ]
 }
 

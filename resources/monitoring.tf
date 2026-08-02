@@ -133,6 +133,21 @@ resource "kubernetes_manifest" "monitoring_alloy_config" {
           }
         }
 
+        faro.receiver "default" {
+          server {
+            listen_address = "0.0.0.0"
+            listen_port    = 12347
+            cors_allowed_origins = [
+              "https://drivers.tranzzer.com",
+            ]
+          }
+
+          output {
+            logs   = [loki.write.default.receiver]
+            traces = [otelcol.exporter.otlp.tempo.input]
+          }
+        }
+
         otelcol.exporter.otlp "tempo" {
           client {
             endpoint = "${local.monitoring_tempo_otlp_endpoint}"

@@ -28,6 +28,12 @@ resource "helm_release" "monitoring_alloy" {
             targetPort = 4318
             protocol   = "TCP"
           },
+          {
+            name       = "faro"
+            port       = 12347
+            targetPort = 12347
+            protocol   = "TCP"
+          },
         ]
       }
       controller = {
