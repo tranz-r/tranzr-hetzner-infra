@@ -52,6 +52,9 @@ resource "kubernetes_manifest" "rabbitmq_credentials_external_secret" {
         name           = "rabbitmq-credentials"
         creationPolicy = "Owner"
         template = {
+          # Explicit: API defaults this; kubernetes provider otherwise errors
+          # "was null, but now Replace" after apply.
+          mergePolicy   = "Replace"
           engineVersion = "v2"
           data = {
             username            = "admin"
