@@ -22,14 +22,14 @@ hetzner-k3s/
 │   ├── hcloud-microos-snapshots.pkr.hcl  # Packer template for MicroOS images
 │   └── README.md                # Setup instructions for MicroOS images
 ├── crds/                        # Gateway API CRDs and operators
-│   ├── main.tf                  # Gateway API CRDs, external-secrets, CloudNativePG
+│   ├── main.tf                  # Gateway API CRDs, external-secrets, CloudNativePG, rabbitmq-cluster-operator
 │   ├── variables.tf
 │   ├── providers.tf             # Azure backend + Kubernetes providers
 │   └── local.tf                 # Local settings
 ├── resources/                   # cert-manager and Azure Key Vault resources
 │   ├── main.tf                  # ClusterIssuers, ClusterSecretStore, Nginx Gateway Fabric
 │   ├── redis.tf                 # Platform Redis
-│   ├── rabbitmq.tf              # Platform RabbitMQ
+│   ├── rabbitmq.tf              # Platform RabbitMQ (ExternalSecret + RabbitmqCluster; operator in crds/)
 │   ├── monitoring.tf              # LGTM+P namespace, Grafana secret, Alloy ConfigMap
 │   ├── monitoring-gateway-routes.tf # HTTPRoute → tranzr-gateway (no Ingress on Hetzner)
 │   ├── monitoring-*.tf            # helm_release: KPS, Grafana, Loki, Tempo, Alloy
@@ -68,15 +68,16 @@ hetzner-k3s/
 - Kured (automatic reboots)
 
 **By crds/ Terraform:**
-- Gateway API CRDs (v1.4.1)
-- external-secrets-operator (v2.0.0)
-- CloudNativePG operator (v0.27.0)
+- Gateway API CRDs
+- external-secrets-operator
+- CloudNativePG operator
+- rabbitmq-cluster-operator (CRDs + controllers in `rabbitmq-system`)
 
 **By resources/ Terraform:**
 - cert-manager ClusterIssuers (Let's Encrypt staging & production)
 - Azure Key Vault ClusterSecretStore (for external-secrets)
 - Nginx Gateway Fabric (v2.3.0)
-- Platform Redis (`redis-system`) and RabbitMQ (`rabbitmq-system`)
+- Platform Redis (`redis-system`) and RabbitMQ instance (`RabbitmqCluster` in `rabbitmq-system`; operator installed in crds/)
 - **LGTM+P monitoring** (`monitoring-system`): remote `helm_release` charts (KPS, Grafana, Loki, Tempo, Alloy) with `yamlencode` values like Redis/RabbitMQ; **app-focused** (no kubelet/kube-state-metrics/node-exporter; OTLP + opt-in `prometheus-scrape: "true"` ServiceMonitors); external URLs via **Gateway API** `HTTPRoute` → shared `tranzr-gateway` in `tranzr-moves` (no Ingress); Alloy OTLP at `monitoring-alloy.monitoring-system:4317`; public Faro ingest at `https://faro.tranzzer.com` (port `12347`)
 
 **AKV prerequisites for monitoring:** `tranzr-grafana-admin-user`, `tranzr-grafana-admin-password`

@@ -67,3 +67,17 @@ resource "helm_release" "cloudnative-pg-operator" {
   wait = true
 }
 
+# Installs RabbitmqCluster CRDs + controllers before resources/ applies RabbitmqCluster CRs.
+# Namespace is also owned by resources/ (kubernetes_namespace_v1); create_namespace is safe if it already exists.
+resource "helm_release" "rabbitmq_cluster_operator" {
+  name             = local.rabbitmqClusterOperatorSettings.name
+  repository       = local.rabbitmqClusterOperatorSettings.repository
+  chart            = local.rabbitmqClusterOperatorSettings.chart
+  version          = local.rabbitmqClusterOperatorSettings.chart_version
+  namespace        = local.rabbitmqClusterOperatorSettings.namespace
+  create_namespace = true
+
+  wait    = true
+  timeout = 300
+}
+
