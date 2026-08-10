@@ -82,6 +82,17 @@ hetzner-k3s/
 
 **AKV prerequisites for monitoring:** `tranzr-grafana-admin-user`, `tranzr-grafana-admin-password`
 
+**AKV prerequisites for platform RabbitMQ:** `platform-rabbitmq-password`, `platform-rabbitmq-erlang-cookie` (operator-shaped secret `rabbitmq-credentials` in `rabbitmq-system`)
+
+### Platform RabbitMQ (operator cluster)
+
+- **Operator:** CloudPirates `rabbitmq-cluster-operator` `0.5.5` in `crds/` (`rabbitmq-system`)
+- **Instance:** `RabbitmqCluster` `rabbitmq` in `resources/rabbitmq.tf` — 3 replicas, image `rabbitmq:4.3.4-management-alpine`, storage `hcloud-volumes`, node-wide quorum DQT
+- **Client DNS:** `rabbitmq.rabbitmq-system.svc.cluster.local:5672` (apps in tranzr-gitops)
+- **Namespace:** still TF-managed in `resources/` (same pattern as Redis); do not remove it from state when installing the operator
+
+Cutover from the old standalone CloudPirates Helm chart (`rabbitmq` 0.21.4) must destroy that release **before** applying the `RabbitmqCluster` (Service name `rabbitmq` collides otherwise). Orphan PVC `data-rabbitmq-0` can be deleted after cutover.
+
 **Hetzner production URLs** (Gateway API via `tranzr-gateway`, TLS from wildcard `*.tranzr.co.uk` cert):
 
 - Grafana: https://grafana.tranzr.co.uk
