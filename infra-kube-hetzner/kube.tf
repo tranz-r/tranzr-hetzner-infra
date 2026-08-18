@@ -75,7 +75,9 @@ module "kube-hetzner" {
 
   cluster_name = "tranzrmoves"
 
-  k3s_channel = "latest"
+  # Module 3.0.0 does not accept k3s_channel = "v1.36". stable currently tracks v1.36.3+k3s1
+  # and cannot resolve to arbitrary historic releases the way latest (regexp .*) can.
+  k3s_channel = "stable"
 
   cni_plugin            = "cilium"
   cilium_version        = "1.19.1"
@@ -101,7 +103,15 @@ extraArgs:
   EOT 
 
   automatically_upgrade_kubernetes = true
-  automatically_upgrade_os         = true
+  automatically_upgrade_os         = false
+  enable_kured                     = false
+
+  system_upgrade_schedule_window = {
+    days      = ["saturday"]
+    startTime = "02:00"
+    endTime   = "05:00"
+    timeZone  = "Europe/London"
+  }
 
   dns_servers = [
     "1.1.1.1",
