@@ -58,11 +58,11 @@ module "kube-hetzner" {
       location    = var.location
       labels      = []
       taints      = []
-      count       = 1
+      count       = 2
     }
   ]
 
-  # Cost-focused autoscaler: scale from 0, cap burst at 3, shrink aggressively when idle.
+  # Cost-focused autoscaler: scale from 0, cap burst at 3; baseline is 2 static agents.
   # Node group / label: hcloud/node-group=tranzrmoves-ca-nbg1
   # Before apply: delete leftover servers from older pool names (e.g. autoscaled-agents).
   autoscaler_nodepools = [
@@ -75,11 +75,11 @@ module "kube-hetzner" {
     }
   ]
 
-  # Faster scale-down than CA defaults (50% / 10m) so burst nodes don't linger.
+  # Softer than 5m so CA is less likely to fight SUC drains on Saturday upgrades.
   cluster_autoscaler_extra_args = [
     "--scale-down-utilization-threshold=0.6",
-    "--scale-down-unneeded-time=5m",
-    "--scale-down-delay-after-add=5m",
+    "--scale-down-unneeded-time=15m",
+    "--scale-down-delay-after-add=15m",
     "--skip-nodes-with-local-storage=false",
   ]
 
@@ -87,7 +87,7 @@ module "kube-hetzner" {
 
   cluster_name = "tranzrmoves"
 
-  # Module 3.2.1 accepts k3s_channel = "v1.36"; "stable" tracks the current stable release.
+  # Track current k3s stable (includes minor bumps when upstream promotes them).
   k3s_channel = "stable"
 
   cni_plugin            = "cilium"
