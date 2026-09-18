@@ -5,6 +5,7 @@ module "kube-hetzner" {
   }
 
   source       = "kube-hetzner/kube-hetzner/hcloud"
+  version      = "3.2.1"
   hcloud_token = var.hcloud_token
 
   ssh_public_key  = var.ssh_public_key
@@ -61,22 +62,32 @@ module "kube-hetzner" {
     }
   ]
 
-  # autoscaler_nodepools = [
-  #   {
-  #     name        = "autoscaled-agents"
-  #     server_type = var.agent_type
-  #     location    = var.location
-  #     min_nodes   = 0
-  #     max_nodes   = 3
-  #   }
-  # ]
+  # Cost-focused autoscaler: scale from 0, cap burst at 3, shrink aggressively when idle.
+  # Node group / label: hcloud/node-group=tranzrmoves-ca-nbg1
+  # Before apply: delete leftover servers from older pool names (e.g. autoscaled-agents).
+  autoscaler_nodepools = [
+    {
+      name        = "ca-nbg1"
+      server_type = var.agent_type
+      location    = var.location
+      min_nodes   = 0 # no idle autoscaled nodes (baseline stays on static "agents")
+      max_nodes   = 3 # hard cost ceiling; not a target size
+    }
+  ]
+
+  # Faster scale-down than CA defaults (50% / 10m) so burst nodes don't linger.
+  cluster_autoscaler_extra_args = [
+    "--scale-down-utilization-threshold=0.6",
+    "--scale-down-unneeded-time=5m",
+    "--scale-down-delay-after-add=5m",
+    "--skip-nodes-with-local-storage=false",
+  ]
 
   system_upgrade_use_drain = true
 
   cluster_name = "tranzrmoves"
 
-  # Module 3.0.0 does not accept k3s_channel = "v1.36". stable currently tracks v1.36.3+k3s1
-  # and cannot resolve to arbitrary historic releases the way latest (regexp .*) can.
+  # Module 3.2.1 accepts k3s_channel = "v1.36"; "stable" tracks the current stable release.
   k3s_channel = "stable"
 
   cni_plugin            = "cilium"
